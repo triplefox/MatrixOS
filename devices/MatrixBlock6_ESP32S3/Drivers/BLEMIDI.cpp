@@ -6,8 +6,9 @@ using std::queue;
 
 #define TAG "BLE-MIDI"
 
-#define BLE_MIDI_PORT_ID 2
+#define BLE_MIDI_PORT_ID MIDI_PORT_BLUETOOTH
 
+#define BLE_MIDI_PORT_STACK_SIZE 256
 namespace Device
 {
   namespace BLEMIDI
@@ -15,7 +16,9 @@ namespace Device
     bool started = false;
     string name;
     MidiPort* midiPort;
-    TaskHandle_t portTaskHandle = NULL;
+    StackType_t bleMidiStack[BLE_MIDI_PORT_STACK_SIZE];
+    StaticTask_t bleMidiTaskTCB;
+    TaskHandle_t bleMidiTask;
 
     void Callback(uint8_t blemidi_port, uint16_t timestamp, uint8_t midi_status, uint8_t* remaining_message, size_t len,
                   size_t continued_sysex_pos) {
@@ -59,8 +62,7 @@ namespace Device
       else
       {
         ESP_LOGI(TAG, "BLE MIDI Driver initialized successfully");
-        xTaskCreate(portTask, "Bluetooth Midi Port", configMINIMAL_STACK_SIZE * 2, NULL, configMAX_PRIORITIES - 2,
-                    &portTaskHandle);
+        bleMidiTask = xTaskCreateStatic(portTask, "Bluetooth Midi Port", BLE_MIDI_PORT_STACK_SIZE, NULL, configMAX_PRIORITIES - 2, bleMidiStack, &bleMidiTaskTCB);
         started = true;
       }
     }
@@ -73,7 +75,7 @@ namespace Device
       {
         ESP_LOGI(TAG, "BLE MIDI Driver deinitialized successfully");
         midiPort->Unregister();
-        vTaskDelete(portTaskHandle);
+        vTaskDelete(bleMidiTask);
         started = false;
       }
     }
