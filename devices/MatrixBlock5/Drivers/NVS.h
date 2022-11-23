@@ -42,8 +42,6 @@ namespace Device::NVS
 
   void CleanUpTable(uint32_t hash_to_ignore = 0);
 
-  bool WriteKey(uint32_t hash, void* pointer, uint16_t length);
-
   void WriteToFlash(uint32_t pointer, uint16_t length, uint16_t* address);
   void EreasePage(uint32_t address, uint32_t pages = 1);
 

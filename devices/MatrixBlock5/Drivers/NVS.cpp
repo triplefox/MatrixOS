@@ -75,9 +75,8 @@ namespace Device::NVS
     }
   }
 
-  std::vector<char> Read(std::string name) {
+  vector<char> Read(uint32_t hash) {
     // MatrixOS::USB::CDC::Println("Reading Key");
-    uint32_t hash = FNV1aHash(name.c_str());
     uint16_t virtual_address = FindKey(hash);
     if (virtual_address == 0xFFFF)
       return std::vector<char>(0);
@@ -90,16 +89,7 @@ namespace Device::NVS
     return value;
   }
 
-  bool Write(std::string name, void* pointer, uint16_t length) {
-    // MatrixOS::USB::CDC::Println("Write");
-    // printf("NVS Write event - Key: %s, value %s, pointer %p, length %u\n", name.c_str(), (char*)pointer, pointer,
-    // length);
-    // Iterate through the Table section to find matching key
-    uint32_t hash = FNV1aHash(name.c_str());
-    return WriteKey(hash, pointer, length);
-  }
-
-  bool WriteKey(uint32_t hash, void* pointer, uint16_t length) {
+  bool Write(uint32_t hash, void* pointer, uint16_t length) {
     uint16_t oldAddress = FindKey(hash);
     // Find Which Page to Write
     int8_t page = CheckSpace(length);
@@ -150,6 +140,11 @@ namespace Device::NVS
       return page;
     }
     return -1;
+  }
+
+  bool Delete(uint32_t hash) //TODO
+  {
+    return false;
   }
 
   uint16_t FindKey(uint32_t hash) {
@@ -256,7 +251,7 @@ namespace Device::NVS
       {
         uint32_t hash = data.first;
         std::vector<char> value = data.second;
-        WriteKey(hash, value.data(), value.size());
+        Write(hash, value.data(), value.size());
       }
     }
   }

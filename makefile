@@ -238,7 +238,7 @@ else
 	@$(MKDIR) -p $@
 endif
 
-$(BUILD)/$(PROJECT).elf: $(OBJ)
+$(BUILD)/$(PROJECT).elf:
 	@echo LINK $@
 	@$(CXX) -o $@ $(LDFLAGS) $^ -Wl,--start-group $(LIBS) -Wl,--end-group
 

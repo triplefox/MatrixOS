@@ -1,9 +1,10 @@
 #include "FactoryMenu.h"
+#ifdef DEVICE_VELOCITY_SENSITIVE
 void FactoryMenu::KeyPadSettings() {
   UI keypadSettings("Keypad Settings", Color(0x00FFFF));
 
   bool need_reboot = false;
-
+  
   UIButtonDimmable customKeypadSettingToggle(
       "Custom Keypad Setting", Color(0x00FFFF), [&]() -> bool { return Device::KeyPad::keypad_custom_setting; },
       [&]() -> void {
@@ -87,3 +88,4 @@ void FactoryMenu::KeyPadSettings() {
     MatrixOS::SYS::Reboot();
   }
 }
+#endif
