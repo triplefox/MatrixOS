@@ -2,9 +2,10 @@
 #pragma once
 
 #define GRID_8x8
-#define MODEL MX1P
+#define MODEL "MX1P"
 
 #define DEVICE_BATTERY
+#define DEVICE_VELOCITY_SENSITIVE
 
 #define MULTIPRESS 10  // Key Press will be process at once
 // #define LC8812

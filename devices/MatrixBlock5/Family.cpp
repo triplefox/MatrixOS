@@ -14,35 +14,26 @@ namespace Device
     NVIC_SetPriority(USBWakeUp_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
     SystemClock_Config();
 
-    USB_Init();
-    LED_Init();
-    KeyPad_Init();
+    USB::Init();
+    LED::Init();
+    KeyPad::Init();
     // TouchBar_Init();
     // NVS::Init(); //Not working TODO FIX
   }
 
-  void PostBootTask() {
-    if (KeyPad::GetKey(Point(0, 0)) && KeyPad::GetKey(Point(1, 1)))
-    { MatrixOS::SYS::ExecuteAPP("203 Electronics", "Matrix Factory Menu"); }
-  }
-
-  void DeviceTask() {}
-
-  void Bootloader() {
-    BKP::Write(10, 0x424C);
-    Reboot();
-  }
+  void DeviceStart() {}
 
   void Reboot() {
     NVIC_SystemReset();
   }
 
-  void Delay(uint32_t interval) {
-    HAL_Delay(interval);
-  }
-
-  uint32_t Millis() {
-    return HAL_GetTick();
+  void Bootloader() {
+    RTC_HandleTypeDef RtcHandle;
+    RtcHandle.Instance = RTC;
+    HAL_PWR_EnableBkUpAccess();
+    HAL_RTCEx_BKUPWrite(&RtcHandle, 10, 0x424C);
+    HAL_PWR_DisableBkUpAccess();
+    Reboot();
   }
 
   void Log(string format, va_list valst) {}
@@ -101,15 +92,29 @@ namespace Device
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
     { ErrorHandler(); }
   }
-
-}
-
-namespace MatrixOS::SYS
-{
-  void ErrorHandler(string error);
 }
 
 extern "C" {
+
+void HAL_MspInit(void) {
+  /* USER CODE BEGIN MspInit 0 */
+
+  /* USER CODE END MspInit 0 */
+
+  __HAL_RCC_AFIO_CLK_ENABLE();
+  __HAL_RCC_PWR_CLK_ENABLE();
+
+  /* System interrupt init*/
+
+  /** DISABLE: JTAG-DP Disabled and SW-DP Disabled
+   */
+  // __HAL_AFIO_REMAP_SWJ_DISABLE();
+
+  /* USER CODE BEGIN MspInit 1 */
+
+  /* USER CODE END MspInit 1 */
+}
+
 void USB_HP_IRQHandler(void) {
   tud_int_handler(0);
 }
@@ -122,14 +127,7 @@ void USBWakeUp_IRQHandler(void) {
   tud_int_handler(0);
 }
 
-// void SysTick_Handler(void)
-// {
-//     HAL_IncTick();
-// }
-
-void _init(void) {
-  ;
-}
+void _init(void) {}
 
 void NMI_Handler(void) {
   while (true)
@@ -157,24 +155,10 @@ void UsageFault_Handler(void) {
   {}
 }
 
-// void SVC_Handler (void)
-// {
-//     while(true){
-
-//     }
-// }
-
 void DebugMon_Handler(void) {
   while (true)
   {}
 }
-
-// void PendSV_Handler (void)
-// {
-//     while(true){
-
-//     }
-// }
 
 void vApplicationMallocFailedHook(void) {
   taskDISABLE_INTERRUPTS();
@@ -190,8 +174,7 @@ void vApplicationStackOverflowHook(xTaskHandle pxTask, char* pcTaskName) {
 /* configSUPPORT_STATIC_ALLOCATION is set to 1, so the application must provide an
  * implementation of vApplicationGetIdleTaskMemory() to provide the memory that is
  * used by the Idle task. */
-void vApplicationGetIdleTaskMemory(StaticTask_t** ppxIdleTaskTCBBuffer, StackType_t** ppxIdleTaskStackBuffer,
-                                   uint32_t* pulIdleTaskStackSize) {
+void vApplicationGetIdleTaskMemory(StaticTask_t** ppxIdleTaskTCBBuffer, StackType_t** ppxIdleTaskStackBuffer, uint32_t* pulIdleTaskStackSize) {
   /* If the buffers to be provided to the Idle task are declared inside this
    * function then they must be declared static - otherwise they will be allocated on
    * the stack and so not exists after this function exits. */
@@ -214,8 +197,7 @@ void vApplicationGetIdleTaskMemory(StaticTask_t** ppxIdleTaskTCBBuffer, StackTyp
 /* configSUPPORT_STATIC_ALLOCATION and configUSE_TIMERS are both set to 1, so the
  * application must provide an implementation of vApplicationGetTimerTaskMemory()
  * to provide the memory that is used by the Timer service task. */
-void vApplicationGetTimerTaskMemory(StaticTask_t** ppxTimerTaskTCBBuffer, StackType_t** ppxTimerTaskStackBuffer,
-                                    uint32_t* pulTimerTaskStackSize) {
+void vApplicationGetTimerTaskMemory(StaticTask_t** ppxTimerTaskTCBBuffer, StackType_t** ppxTimerTaskStackBuffer, uint32_t* pulTimerTaskStackSize) {
   /* If the buffers to be provided to the Timer task are declared inside this
    * function then they must be declared static - otherwise they will be allocated on
    * the stack and so not exists after this function exits. */
@@ -234,8 +216,5 @@ void vApplicationGetTimerTaskMemory(StaticTask_t** ppxTimerTaskTCBBuffer, StackT
       configTIMER_TASK_STACK_DEPTH is specified in words, not bytes. */
   *pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
 }
-}
-
-extern "C" {
 void* __dso_handle = 0;
 }

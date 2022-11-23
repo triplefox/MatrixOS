@@ -3,68 +3,8 @@
 
 #include "Family.h"
 
-#define GRID_8x8
 #define MODEL MXFE1
-#define MULTIPRESS 10  // Key Press will be process at once
 
-extern TIM_HandleTypeDef htim8;
-extern DMA_HandleTypeDef hdma_tim8_ch2;
-
-namespace Device
-{
-  const string name = "Matrix Founder Edition";
-  const string model = "MXFE1";
-
-  const string manufaturer_name = "203 Electronics";
-  const string product_name = "Matrix";
-  const uint16_t usb_vid = 0x0203;
-  const uint16_t usb_pid = 0x1040;  //(Device Class)0001 (Device Code)000001 (Reserved for Device ID (0~63))000000
-
-  const uint16_t numsOfLED = 64;
-  const uint8_t x_size = 8;
-  const uint8_t y_size = 8;
-
-#define MAX_LED_LAYERS 5
-  inline uint16_t keypad_scanrate = 60;
-  inline uint16_t fps = 120;  // Depends on the FreeRTOS tick speed
-
-  inline uint8_t brightness_level[8] = {8, 12, 24, 40, 64, 90, 128, 168};
-
-  const uint8_t touchbar_size = 8;  // Not required by the API, private use. 16 Physical but 8 virtualized key.
-
-  const uint16_t page_size = 2048;
-  const uint8_t nums_of_page = 32;  // Total size has to smaller than 64kb because address constrain
-  const uint32_t nvs_address = 0x8070000;
-
-  namespace KeyPad
-  {
-    inline KeyInfo fnState;
-    inline KeyInfo keypadState[x_size][y_size];
-    inline KeyInfo touchbarState[x_size];
-
-    void FNScan();
-    void KeyPadScan();
-    void TouchBarScan();
-
-    bool addToList(uint16_t keyID);  // Return true when list is full.
-    void clearList();
-    bool isListFull();
-  }
-}
-
-extern "C" {
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim);
-void NMI_Handler(void);
-void HardFault_Handler(void);
-void MemManage_Handler(void);
-void BusFault_Handler(void);
-void UsageFault_Handler(void);
-void SVC_Handler(void);
-void DebugMon_Handler(void);
-void PendSV_Handler(void);
-void SysTick_Handler(void);
-void DMA2_Channel4_5_IRQHandler(void);
-}
 
 struct GPIO {
   GPIO_TypeDef* port;

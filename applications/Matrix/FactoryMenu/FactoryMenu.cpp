@@ -14,13 +14,17 @@ void FactoryMenu::Setup() {
   UIButton touchBarTest("Touch Bar Test", Color(0xFFFFFF), [&]() -> void { TouchBarTester(); });
   factoryMenu.AddUIComponent(touchBarTest, Point(2, 0));
 
+  #ifdef DEVICE_VELOCITY_SENSITIVE
   UIButton keypadSettingBtn("Keypad Settings", Color(0x00FFFF), [&]() -> void { KeyPadSettings(); });
   factoryMenu.AddUIComponent(keypadSettingBtn, Point(7, 0));
+  #endif
 
+  #ifdef EFUSE_BURNER
   UIButtonWithColorFunc burnEfuseBtn(
       "Burn EFuse", [&]() -> Color { return esp_efuse_block_is_empty(EFUSE_BLK3) ? Color(0xFF0000) : Color(0x00FF00); },
       [&]() -> void { EFuseBurner(); });
   factoryMenu.AddUIComponent(burnEfuseBtn, Point(0, 7));
+  #endif
 
   UIButtonWithColorFunc usbConnection(
       "USB Connection", [&]() -> Color { return MatrixOS::USB::Connected() ? Color(0x00FF00) : Color(0xFF0000); },
