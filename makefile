@@ -124,7 +124,6 @@ CFLAGS += \
   -Wstrict-overflow \
   -Wextra \
   -Wfloat-equal \
-  -Wundef \
   -Wwrite-strings \
   -Wsign-compare \
   -Wmissing-format-attribute \
@@ -236,7 +235,7 @@ else
 	@$(MKDIR) -p $@
 endif
 
-$(BUILD)/$(PROJECT).elf:
+$(BUILD)/$(PROJECT).elf: $(OBJ)
 	@echo LINK $@
 	@$(CXX) -o $@ $(LDFLAGS) $^ -Wl,--start-group $(LIBS) -Wl,--end-group
 
