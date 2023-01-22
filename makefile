@@ -172,11 +172,8 @@ include source.mk
 # Set all as default goal
 .DEFAULT_GOAL := all
 
-# ESP32-SX and RP2040 has its own CMake build system
-ifneq ($(MCU),esp32s2)
-ifneq ($(MCU),esp32s3)
-ifneq ($(MCU),rp2040)
-
+# ESP32-Sx and RP2040 has its own CMake build system
+ifeq (,$(findstring $(FAMILY),esp32s2 esp32s3 rp2040))
 # ---------------------------------------
 # GNU Make build system
 # ---------------------------------------
@@ -232,6 +229,7 @@ uf2: $(BUILD)/$(PROJECT).uf2
 OBJ_DIRS = $(sort $(dir $(OBJ)))
 $(OBJ): | $(OBJ_DIRS)
 $(OBJ_DIRS):
+	@echo MKDIR $(subst /,\,$@)
 ifeq ($(CMDEXE),1)
 	@$(MKDIR) $(subst /,\,$@)
 else
@@ -267,30 +265,38 @@ copy-artifact: $(BUILD)/$(PROJECT).bin $(BUILD)/$(PROJECT).hex $(BUILD)/$(PROJEC
 # We set vpath to point to the top of the tree so that the source files
 # can be located. By following this scheme, it allows a single build rule
 # to be used to compile all .c files.
-
+vpath %.c . $(TOP)
 $(BUILD)/obj/%.o: %.c
 	@echo CC $(notdir $@)
 	@$(CC) $(CFLAGS) -c -MD -o $@ $<
 
-# ASM sources .cpp
+vpath %.cpp . $(TOP)
 $(BUILD)/obj/%.o: %.cpp
-	@echo CC $(notdir $@)
+	@echo CXX $(notdir $@)
 	@$(CXX) $(CPPFLAGS) -c -MD -o $@ $<
 
 # ASM sources lower case .s
+vpath %.s . $(TOP)
 $(BUILD)/obj/%_asm.o: %.s
 	@echo AS $(notdir $@)
 	@$(CC) -x assembler-with-cpp $(ASFLAGS) -c -o $@ $<
 
 # ASM sources upper case .S
+vpath %.S . $(TOP)
 $(BUILD)/obj/%_asm.o: %.S
 	@echo AS $(notdir $@)
 	@$(CC) -x assembler-with-cpp $(ASFLAGS) -c -o $@ $<
+
+endif # GNU Make
 
 size: $(BUILD)/$(PROJECT).elf
 	-@echo ''
 	@$(SIZE) $<
 	-@echo ''
+
+# linkermap must be install previously at https://github.com/hathach/linkermap
+linkermap: $(BUILD)/$(PROJECT).elf
+	@linkermap -v $<.map
 
 .PHONY: clean
 clean:
@@ -300,9 +306,6 @@ else
 	$(RM) -rf $(BUILD)
 endif
 
-endif
-endif
-endif # GNU Make
 
 # ---------------------------------------
 # Flash Targets

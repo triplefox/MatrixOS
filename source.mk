@@ -26,23 +26,23 @@ SRC_CPP += $(wildcard applications/*.cpp applications/*/*.cpp applications/*/*/*
 
 # Library source
 SRC_C += \
-	lib\tinyusb\src\tusb.c \
-	lib\tinyusb\src\common\tusb_fifo.c \
-	lib\tinyusb\src\device\usbd.c \
-	lib\tinyusb\src\device\usbd_control.c \
-	lib\tinyusb\src\class\audio\audio_device.c \
-	lib\tinyusb\src\class\cdc\cdc_device.c \
-	lib\tinyusb\src\class\dfu\dfu_device.c \
-	lib\tinyusb\src\class\dfu\dfu_rt_device.c \
-	lib\tinyusb\src\class\hid\hid_device.c \
-	lib\tinyusb\src\class\midi\midi_device.c \
-	lib\tinyusb\src\class\msc\msc_device.c \
-	lib\tinyusb\src\class\net\ecm_rndis_device.c \
-	lib\tinyusb\src\class\net\ncm_device.c \
-	lib\tinyusb\src\class\usbtmc\usbtmc_device.c \
-	lib\tinyusb\src\class\video\video_device.c \
-	lib\tinyusb\src\class\vendor\vendor_device.c \
-	lib\printf\src\printf\printf.c
+	lib/tinyusb/src/tusb.c \
+	lib/tinyusb/src/common/tusb_fifo.c \
+	lib/tinyusb/src/device/usbd.c \
+	lib/tinyusb/src/device/usbd_control.c \
+	lib/tinyusb/src/class/audio/audio_device.c \
+	lib/tinyusb/src/class/cdc/cdc_device.c \
+	lib/tinyusb/src/class/dfu/dfu_device.c \
+	lib/tinyusb/src/class/dfu/dfu_rt_device.c \
+	lib/tinyusb/src/class/hid/hid_device.c \
+	lib/tinyusb/src/class/midi/midi_device.c \
+	lib/tinyusb/src/class/msc/msc_device.c \
+	lib/tinyusb/src/class/net/ecm_rndis_device.c \
+	lib/tinyusb/src/class/net/ncm_device.c \
+	lib/tinyusb/src/class/usbtmc/usbtmc_device.c \
+	lib/tinyusb/src/class/video/video_device.c \
+	lib/tinyusb/src/class/vendor/vendor_device.c \
+	lib/printf/src/printf/printf.c
 
 # Include all source C in family & device folder
 SRC_C += $(subst ,,$(wildcard $(DEVICE_PATH)/*.c))

@@ -16,7 +16,7 @@ CFLAGS += \
   -nostartfiles
 
 SRC_C += \
-	lib\tinyusb\src\portable\st\stm32_fsdev\dcd_stm32_fsdev.c  \
+	lib/tinyusb/src/portable/st/stm32_fsdev/dcd_stm32_fsdev.c  \
 	$(ST_CMSIS)/Source/Templates/system_stm32$(ST_FAMILY)xx.c \
 	$(ST_HAL_DRIVER)/Src/stm32$(ST_FAMILY)xx_hal.c \
 	$(ST_HAL_DRIVER)/Src/stm32$(ST_FAMILY)xx_hal_cortex.c \
@@ -33,7 +33,7 @@ SRC_C += \
 	$(ST_HAL_DRIVER)/Src/stm32$(ST_FAMILY)xx_hal_flash_ex.c
 
 SRC_CPP += \
-	core\STM32F1\ws2812\WS2812.cpp \
+	core/stm32f1/ws2812/WS2812.cpp \
 
 INC += \
 	$(DEVICE_PATH) \
