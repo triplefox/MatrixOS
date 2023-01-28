@@ -14,7 +14,7 @@ namespace MatrixOS::USB
   }
 
 // Create a task for tinyusb device stack
-#define USBD_STACK_SIZE (3 * configMINIMAL_STACK_SIZE)
+#define USBD_STACK_SIZE 2560
   StackType_t usb_device_stack[USBD_STACK_SIZE];
   StaticTask_t usb_device_taskdef;
   void Init() {
