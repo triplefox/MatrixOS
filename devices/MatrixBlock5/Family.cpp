@@ -158,12 +158,6 @@ void NMI_Handler(void) {
 }
 
 void HardFault_Handler(void) {
-  RTC_HandleTypeDef RtcHandle;
-  RtcHandle.Instance = RTC;
-  HAL_PWR_EnableBkUpAccess();
-  HAL_RTCEx_BKUPWrite(&RtcHandle, 10, 0x424C);
-  HAL_PWR_DisableBkUpAccess();
-  NVIC_SystemReset();
   MatrixOS::SYS::ErrorHandler("Hard Fault");
   while (true)
   {}
