@@ -8,12 +8,13 @@ ST_HAL_DRIVER = core/stm32$(ST_FAMILY)/stm32$(ST_FAMILY)xx_hal_driver
 include $(DEVICE_PATH)/device.mk
 
 CFLAGS += \
+  -flto \
   -mthumb \
   -mabi=aapcs \
   -mcpu=cortex-m3 \
   -mfloat-abi=soft \
-  -DCFG_TUSB_MCU=OPT_MCU_STM32F1\
-  -nostartfiles
+  -nostartfiles \
+  -DCFG_TUSB_MCU=OPT_MCU_STM32F1
 
 SRC_C += \
 	lib/tinyusb/src/portable/st/stm32_fsdev/dcd_stm32_fsdev.c  \
@@ -23,6 +24,7 @@ SRC_C += \
 	$(ST_HAL_DRIVER)/Src/stm32$(ST_FAMILY)xx_hal_rcc.c \
 	$(ST_HAL_DRIVER)/Src/stm32$(ST_FAMILY)xx_hal_rcc_ex.c \
 	$(ST_HAL_DRIVER)/Src/stm32$(ST_FAMILY)xx_hal_gpio.c \
+	$(ST_HAL_DRIVER)/Src/stm32$(ST_FAMILY)xx_hal_uart.c\
 	$(ST_HAL_DRIVER)/Src/stm32$(ST_FAMILY)xx_hal_dma.c \
 	$(ST_HAL_DRIVER)/Src/stm32$(ST_FAMILY)xx_hal_tim.c \
 	$(ST_HAL_DRIVER)/Src/stm32$(ST_FAMILY)xx_hal_tim_ex.c \

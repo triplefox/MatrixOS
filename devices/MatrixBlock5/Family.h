@@ -45,6 +45,9 @@ namespace Device
 
   void SystemClock_Config();
 
+  inline UART_HandleTypeDef huart4;
+  void MX_UART4_Init(void);
+
   namespace KeyPad
   {
     inline KeyConfig keyinfo_config = {

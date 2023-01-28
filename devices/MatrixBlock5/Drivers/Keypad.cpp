@@ -6,7 +6,7 @@ namespace Device::KeyPad
   StaticTimer_t keypad_timer_def;
   TimerHandle_t keypad_timer;
 
-  void Scan() {
+  void ScanTimerCallback(TimerHandle_t xTimer) {
     if (ScanFN())
       return;
     if (ScanKeyPad())
@@ -76,7 +76,7 @@ namespace Device::KeyPad
 
   void StartKeyPad() {
     keypad_timer = xTimerCreateStatic(NULL, configTICK_RATE_HZ / Device::keypad_scanrate, true, NULL,
-                                      reinterpret_cast<TimerCallbackFunction_t>(Scan), &keypad_timer_def);
+                                      ScanTimerCallback, &keypad_timer_def);
     xTimerStart(keypad_timer, 0);
   }
 
@@ -163,6 +163,7 @@ bool ScanFN() {
       for (i = 0; i < 5; ++i)
       {}  // Add small delay
     }
+    return false;
   }
 
   bool NotifyOS(uint16_t keyID, KeyInfo* keyInfo) {

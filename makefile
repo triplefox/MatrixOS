@@ -115,7 +115,6 @@ endif
 
 # Compiler Flags
 CFLAGS += \
-  -ggdb \
   -fdata-sections \
   -ffunction-sections \
   -fsingle-precision-constant \
@@ -132,8 +131,7 @@ CFLAGS += \
   -Wcast-function-type
 
 CPPFLAGS += \
-	-std=gnu++17 \
-	# -lstdc++
+	-std=gnu++17
 
 # Debugging/Optimization
 ifeq ($(DEBUG), 1)
@@ -172,7 +170,9 @@ include source.mk
 .DEFAULT_GOAL := all
 
 # ESP32-Sx and RP2040 has its own CMake build system
-ifeq (,$(findstring $(FAMILY),esp32s2 esp32s3 rp2040))
+ifneq ($(MCU),esp32s2)
+ifneq ($(MCU),esp32s3)
+ifneq ($(MCU),rp2040)
 # ---------------------------------------
 # GNU Make build system
 # ---------------------------------------
@@ -286,17 +286,11 @@ $(BUILD)/obj/%_asm.o: %.S
 	@echo AS $(notdir $@)
 	@$(CC) -x assembler-with-cpp $(ASFLAGS) -c -o $@ $<
 
-endif # GNU Make
-
 size: $(BUILD)/$(PROJECT).elf
 	-@echo ''
 	@$(SIZE) $<
 	-@echo ''
-
-# linkermap must be install previously at https://github.com/hathach/linkermap
-linkermap: $(BUILD)/$(PROJECT).elf
-	@linkermap -v $<.map
-
+	
 .PHONY: clean
 clean:
 ifeq ($(CMDEXE),1)
@@ -305,6 +299,9 @@ else
 	$(RM) -rf $(BUILD)
 endif
 
+endif
+endif
+endif # GNU Make
 
 # ---------------------------------------
 # Flash Targets

@@ -9,19 +9,29 @@ namespace Device
 {
   void DeviceInit() {
     HAL_Init();
-    NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
-    NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
-    NVIC_SetPriority(USBWakeUp_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
+    // NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
+    // NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
+    // NVIC_SetPriority(USBWakeUp_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
     SystemClock_Config();
+
+    MX_UART4_Init();
 
     USB::Init();
     LED::Init();
     KeyPad::Init();
     // TouchBar_Init();
     // NVS::Init(); //Not working TODO FIX
+
+    // while(1)
+    // {
+    //   char buffer[] = "Hello World";
+    //   HAL_UART_Transmit(&huart4, (uint8_t*)buffer, strlen(buffer), 100);
+    // }
   }
 
-  void DeviceStart() {}
+  void DeviceStart() {
+    KeyPad::Start();
+  }
 
   void Reboot() {
     NVIC_SystemReset();
@@ -36,7 +46,11 @@ namespace Device
     Reboot();
   }
 
-  void Log(string format, va_list valst) {}
+  void Log(string format, va_list valst) {
+    char buffer[256];
+    vsnprintf(buffer, 256, format.c_str(), valst);
+    HAL_UART_Transmit(&huart4, (uint8_t*)buffer, strlen(buffer), 100);
+  }
 
   string GetSerial() {
     return "<Serial Number>";  // TODO
@@ -92,28 +106,37 @@ namespace Device
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
     { ErrorHandler(); }
   }
+
+  void MX_UART4_Init(void)
+  {
+
+    /* USER CODE BEGIN UART4_Init 0 */
+
+    /* USER CODE END UART4_Init 0 */
+
+    /* USER CODE BEGIN UART4_Init 1 */
+
+    /* USER CODE END UART4_Init 1 */
+    huart4.Instance = UART4;
+    huart4.Init.BaudRate = 115200;
+    huart4.Init.WordLength = UART_WORDLENGTH_8B;
+    huart4.Init.StopBits = UART_STOPBITS_1;
+    huart4.Init.Parity = UART_PARITY_NONE;
+    huart4.Init.Mode = UART_MODE_TX_RX;
+    huart4.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    huart4.Init.OverSampling = UART_OVERSAMPLING_16;
+    if (HAL_UART_Init(&huart4) != HAL_OK)
+    {
+      ErrorHandler();
+    }
+    /* USER CODE BEGIN UART4_Init 2 */
+
+    /* USER CODE END UART4_Init 2 */
+
+  }
 }
 
 extern "C" {
-
-void HAL_MspInit(void) {
-  /* USER CODE BEGIN MspInit 0 */
-
-  /* USER CODE END MspInit 0 */
-
-  __HAL_RCC_AFIO_CLK_ENABLE();
-  __HAL_RCC_PWR_CLK_ENABLE();
-
-  /* System interrupt init*/
-
-  /** DISABLE: JTAG-DP Disabled and SW-DP Disabled
-   */
-  // __HAL_AFIO_REMAP_SWJ_DISABLE();
-
-  /* USER CODE BEGIN MspInit 1 */
-
-  /* USER CODE END MspInit 1 */
-}
 
 void USB_HP_IRQHandler(void) {
   tud_int_handler(0);
@@ -135,6 +158,12 @@ void NMI_Handler(void) {
 }
 
 void HardFault_Handler(void) {
+  RTC_HandleTypeDef RtcHandle;
+  RtcHandle.Instance = RTC;
+  HAL_PWR_EnableBkUpAccess();
+  HAL_RTCEx_BKUPWrite(&RtcHandle, 10, 0x424C);
+  HAL_PWR_DisableBkUpAccess();
+  NVIC_SystemReset();
   MatrixOS::SYS::ErrorHandler("Hard Fault");
   while (true)
   {}
