@@ -35,6 +35,11 @@ namespace Device
   const uint16_t usb_vid = 0x0203;
   const uint16_t usb_pid = 0x1040;  //(Device Class)0001 (Device Code)000001 (Reserved for Device ID (0~63))000000
 
+  const uint8_t sysex_mfg_id[3] = {0x00, 0x02, 0x03};
+  const uint8_t sysex_family_id[3] = {0x4D, 0x58}; // {'M', 'X'}
+  const uint8_t sysex_model_id[3] = {0x11, 0x01};
+
+
   const uint16_t numsOfLED = 64 + 32;
   inline uint16_t keypad_scanrate = 480;
   inline uint16_t touchbar_scanrate = 60;

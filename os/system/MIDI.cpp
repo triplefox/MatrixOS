@@ -1,11 +1,6 @@
 #include "MatrixOS.h"
 #include <map>
 
-// TODO Put this in device layer
-const uint8_t SYSEX_MFG_ID[3] = {0x00, 0x02, 0x03};
-const uint8_t SYSEX_FAMILY_ID[3] = {0x4D, 0x58}; // {'M', 'X'}
-const uint8_t SYSEX_MODEL_ID[3] = {0x11, 0x01};
-
 namespace MatrixOS::MIDI
 {
   QueueHandle_t midi_queue;
@@ -48,7 +43,7 @@ namespace MatrixOS::MIDI
   {
     if(includeMeta)
     {
-      uint8_t header[6] = {MIDIv1_SYSEX_START, SYSEX_MFG_ID[0], SYSEX_MFG_ID[1], SYSEX_MFG_ID[2], SYSEX_FAMILY_ID[0], SYSEX_FAMILY_ID[1]};
+      uint8_t header[6] = {MIDIv1_SYSEX_START, Device::sysex_mfg_id[0], Device::sysex_mfg_id[1], Device::sysex_mfg_id[2], Device::sysex_family_id[0], Device::sysex_family_id[1]};
       if(!Send(MidiPacket(port, SysExData, 3, header), 5))
       { return false; }
 
@@ -137,9 +132,9 @@ namespace MatrixOS::MIDI
 
          uint8_t reply[] = {
           MIDIv1_SYSEX_START, MIDIv1_UNIVERSAL_NON_REALTIME_ID, USYSEX_ALL_CHANNELS, USYSEX_GENERAL_INFO, USYSEX_GI_ID_RESPONSE, 
-          SYSEX_MFG_ID[0], SYSEX_MFG_ID[1], SYSEX_MFG_ID[2], 
-          SYSEX_FAMILY_ID[0], SYSEX_FAMILY_ID[1], 
-          SYSEX_MODEL_ID[0], SYSEX_MODEL_ID[1],
+          Device::sysex_mfg_id[0], Device::sysex_mfg_id[1], Device::sysex_mfg_id[2], 
+          Device::sysex_family_id[0], Device::sysex_family_id[1], 
+          Device::sysex_model_id[0], Device::sysex_model_id[1],
           MATRIXOS_MAJOR_VER, MATRIXOS_MINOR_VER, MATRIXOS_PATCH_VER, osReleaseVersion,
           MIDIv1_SYSEX_END};
 
@@ -150,8 +145,8 @@ namespace MatrixOS::MIDI
     }
     else if(
       sysExBuffer.size() >= 6 &&
-      sysExBuffer[1] == SYSEX_MFG_ID[0] && sysExBuffer[2] == SYSEX_MFG_ID[1] && sysExBuffer[3] == SYSEX_MFG_ID[2] && 
-      sysExBuffer[4] == SYSEX_FAMILY_ID[0] && sysExBuffer[5] == SYSEX_FAMILY_ID[1])
+      sysExBuffer[1] == Device::sysex_mfg_id[0] && sysExBuffer[2] == Device::sysex_mfg_id[1] && sysExBuffer[3] == Device::sysex_mfg_id[2] && 
+      sysExBuffer[4] == Device::sysex_family_id[0] && sysExBuffer[5] == Device::sysex_family_id[1])
     {
       return SysExState::RELEASE;
     }
