@@ -38,27 +38,39 @@ namespace MatrixOS::SYS
     active_app->Start();
   }
 
-  void Supervisor(void* param) {
+  // void Supervisor(void* param) {
 
-    MatrixOS::Logging::LogDebug("Supervisor", "%d Apps registered", app_count);
+  //   MatrixOS::Logging::LogDebug("Supervisor", "%d Apps registered", app_count);
 
-    for (uint8_t i = 0; i < app_count; i++)
+  //   for (uint8_t i = 0; i < app_count; i++)
+  //   {
+  //     Application_Info* application = applications[i];
+  //     MatrixOS::Logging::LogDebug("Supervisor", "%X\t%s-%s v%u", application->id, application->author.c_str(),
+  //                                 application->name.c_str(), application->version);
+  //   }
+
+  //   active_app_task = xTaskCreateStatic(ApplicationFactory, "application", APPLICATION_STACK_SIZE, NULL, 1,
+  //                                       application_stack, &application_taskdef);
+  //   while (true)
+  //   {
+  //     if (eTaskGetState(active_app_task) == eTaskState::eDeleted)
+  //     {
+  //       active_app_task = xTaskCreateStatic(ApplicationFactory, "application", APPLICATION_STACK_SIZE, NULL, 1,
+  //                                           application_stack, &application_taskdef);
+  //     }
+  //     DelayMs(100);
+  //   }
+  // }
+
+  char loggingBuffer[1024];
+  void TaskLogging(void* param) {
+    DelayMs(2000);
+    while(true)
     {
-      Application_Info* application = applications[i];
-      MatrixOS::Logging::LogDebug("Supervisor", "%X\t%s-%s v%u", application->id, application->author.c_str(),
-                                  application->name.c_str(), application->version);
-    }
-
-    active_app_task = xTaskCreateStatic(ApplicationFactory, "application", APPLICATION_STACK_SIZE, NULL, 1,
-                                        application_stack, &application_taskdef);
-    while (true)
-    {
-      if (eTaskGetState(active_app_task) == eTaskState::eDeleted)
-      {
-        active_app_task = xTaskCreateStatic(ApplicationFactory, "application", APPLICATION_STACK_SIZE, NULL, 1,
-                                            application_stack, &application_taskdef);
-      }
-      DelayMs(100);
+      vTaskList(loggingBuffer);
+      // Logging::LogInfo("Task List", "Test");
+      USB::CDC::Print(loggingBuffer);
+      DelayMs(1000);
     }
   }
 
@@ -66,27 +78,30 @@ namespace MatrixOS::SYS
     Device::DeviceInit();
 
     USB::Init();
-    KEYPAD::Init();
-    LED::Init();
+    // KEYPAD::Init();
+    // LED::Init();
 
-    MIDI::Init();
+    // MIDI::Init();
 
     inited = true;
 
-    Logging::LogInfo("System", "Matrix OS initialization complete");
+    // Logging::LogInfo("System", "Matrix OS initialization complete");
 
-    Logging::LogError("Logging", "This is an error log");
-    Logging::LogWarning("Logging", "This is a warning log");
-    Logging::LogInfo("Logging", "This is an info log");
-    Logging::LogDebug("Logging", "This is a debug log");
-    Logging::LogVerbose("Logging", "This is a verbose log");
+    // Logging::LogError("Logging", "This is an error log");
+    // Logging::LogWarning("Logging", "This is a warning log");
+    // Logging::LogInfo("Logging", "This is an info log");
+    // Logging::LogDebug("Logging", "This is a debug log");
+    // Logging::LogVerbose("Logging", "This is a verbose log");
 
-    ExecuteAPP("203 Electronics", "Matrix Boot");  // Seperate boot animation with Application Class
+    // ExecuteAPP("203 Electronics", "Matrix Boot");  // Seperate boot animation with Application Class
 
     Device::DeviceStart();  // App won't run till supervisor is running
 
-    (void)xTaskCreateStatic(Supervisor, "supervisor", configMINIMAL_STACK_SIZE * 4, NULL, 1, supervisor_stack,
-                            &supervisor_taskdef);
+    // (void)xTaskCreateStatic(Supervisor, "supervisor", configMINIMAL_STACK_SIZE * 4, NULL, 1, supervisor_stack,
+    //                         &supervisor_taskdef);
+
+    (void)xTaskCreateStatic(TaskLogging, "tasklogging", configMINIMAL_STACK_SIZE * 2, NULL, 1, tasklogging_stack,
+                            &tasklogging_taskdef);                        
 
     // next_app = GenerateAPPID("203 Electronics", "Performance Mode");  // Launch Performance mode by default for now
   }

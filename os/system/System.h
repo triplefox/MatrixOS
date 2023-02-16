@@ -8,14 +8,14 @@ Application_Info* applications[app_count];
 
 namespace MatrixOS::SYS
 {
-  StaticTimer_t device_task_tmdef;
-  TimerHandle_t device_task_tm;
+  // StackType_t application_stack[APPLICATION_STACK_SIZE];
+  // StaticTask_t application_taskdef;
 
-  StackType_t application_stack[APPLICATION_STACK_SIZE];
-  StaticTask_t application_taskdef;
+  // StackType_t supervisor_stack[configMINIMAL_STACK_SIZE * 4];
+  // StaticTask_t supervisor_taskdef;
 
-  StackType_t supervisor_stack[configMINIMAL_STACK_SIZE * 4];
-  StaticTask_t supervisor_taskdef;
+  StackType_t tasklogging_stack[configMINIMAL_STACK_SIZE * 2];
+  StaticTask_t tasklogging_taskdef;
 
   inline TaskHandle_t active_app_task = NULL;
   inline uint32_t active_app_id = 0;

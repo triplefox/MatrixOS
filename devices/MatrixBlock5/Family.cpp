@@ -9,16 +9,16 @@ namespace Device
 {
   void DeviceInit() {
     HAL_Init();
-    // NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
-    // NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
-    // NVIC_SetPriority(USBWakeUp_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
+    NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
+    NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
+    NVIC_SetPriority(USBWakeUp_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
     SystemClock_Config();
 
     MX_UART4_Init();
 
     USB::Init();
-    LED::Init();
-    KeyPad::Init();
+    // LED::Init();
+    // KeyPad::Init();
     // TouchBar_Init();
     // NVS::Init(); //Not working TODO FIX
 
@@ -30,7 +30,7 @@ namespace Device
   }
 
   void DeviceStart() {
-    KeyPad::Start();
+    // KeyPad::Start();
   }
 
   void Reboot() {

@@ -14,14 +14,14 @@ namespace MatrixOS::USB
   }
 
 // Create a task for tinyusb device stack
-#define USBD_STACK_SIZE 2560
+#define USBD_STACK_SIZE 386
   StackType_t usb_device_stack[USBD_STACK_SIZE];
   StaticTask_t usb_device_taskdef;
   void Init() {
     tusb_init();
     (void)xTaskCreateStatic(usb_device_task, "usbd", USBD_STACK_SIZE, NULL, configMAX_PRIORITIES - 1, usb_device_stack,
                             &usb_device_taskdef);
-    USB::MIDI::Init();
+    // USB::MIDI::Init();
   }
 
   bool Inited() {
