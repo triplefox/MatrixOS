@@ -8,13 +8,15 @@ Application_Info* applications[app_count];
 
 namespace MatrixOS::SYS
 {
-  // StackType_t application_stack[APPLICATION_STACK_SIZE];
-  // StaticTask_t application_taskdef;
+  StackType_t application_stack[APPLICATION_STACK_SIZE];
+  StaticTask_t application_taskdef;
 
-  // StackType_t supervisor_stack[configMINIMAL_STACK_SIZE * 4];
-  // StaticTask_t supervisor_taskdef;
+  #define SUPERVISOR_STACK_SIZE 64
+  StackType_t supervisor_stack[SUPERVISOR_STACK_SIZE];
+  StaticTask_t supervisor_taskdef;
 
-  StackType_t tasklogging_stack[configMINIMAL_STACK_SIZE * 2];
+  #define TASKLOGGING_STACK_SIZE 192
+  StackType_t tasklogging_stack[TASKLOGGING_STACK_SIZE];
   StaticTask_t tasklogging_taskdef;
 
   inline TaskHandle_t active_app_task = NULL;

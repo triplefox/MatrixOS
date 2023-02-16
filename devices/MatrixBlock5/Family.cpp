@@ -17,8 +17,8 @@ namespace Device
     MX_UART4_Init();
 
     USB::Init();
-    // LED::Init();
-    // KeyPad::Init();
+    LED::Init();
+    KeyPad::Init();
     // TouchBar_Init();
     // NVS::Init(); //Not working TODO FIX
 
