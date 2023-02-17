@@ -30,7 +30,7 @@ namespace Device
   }
 
   void DeviceStart() {
-    // KeyPad::Start();
+    KeyPad::Start();
   }
 
   void Reboot() {
