@@ -62,18 +62,18 @@ namespace MatrixOS::SYS
     }
   }
 
-  char loggingBuffer[1024];
-  void TaskLogging(void* param) {
-    DelayMs(2000);
-    while(true)
-    {
-      vTaskList(loggingBuffer);
-      // Logging::LogInfo("Task List", "Test");
-      USB::CDC::Printf("Free Heap: %d\r\n", xPortGetFreeHeapSize());
-      USB::CDC::Print(loggingBuffer);
-      DelayMs(1000);
-    }
-  }
+  // char loggingBuffer[1024];
+  // void TaskLogging(void* param) {
+  //   DelayMs(2000);
+  //   while(true)
+  //   {
+  //     vTaskList(loggingBuffer);
+  //     // Logging::LogInfo("Task List", "Test");
+  //     USB::CDC::Printf("Free Heap: %d\r\n", xPortGetFreeHeapSize());
+  //     USB::CDC::Print(loggingBuffer);
+  //     DelayMs(1000);
+  //   }
+  // }
 
   void Init() {
     Device::DeviceInit();
@@ -101,10 +101,10 @@ namespace MatrixOS::SYS
     (void)xTaskCreateStatic(Supervisor, "supervisor", SUPERVISOR_STACK_SIZE, NULL, 1, supervisor_stack,
                             &supervisor_taskdef);
 
-    (void)xTaskCreateStatic(TaskLogging, "tasklogging", TASKLOGGING_STACK_SIZE, NULL, 1, tasklogging_stack,
-                            &tasklogging_taskdef);                        
+    // (void)xTaskCreateStatic(TaskLogging, "tasklogging", TASKLOGGING_STACK_SIZE, NULL, 1, tasklogging_stack,
+    //                         &tasklogging_taskdef);                        
 
-    next_app = GenerateAPPID("203 Electronics", "Performance Mode");  // Launch Performance mode by default for now
+    // next_app = GenerateAPPID("203 Electronics", "Performance Mode");  // Launch Performance mode by default for now
   }
 
   uint32_t Millis() {

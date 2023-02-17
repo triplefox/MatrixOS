@@ -15,9 +15,9 @@ namespace MatrixOS::SYS
   StackType_t supervisor_stack[SUPERVISOR_STACK_SIZE];
   StaticTask_t supervisor_taskdef;
 
-  #define TASKLOGGING_STACK_SIZE 192
-  StackType_t tasklogging_stack[TASKLOGGING_STACK_SIZE];
-  StaticTask_t tasklogging_taskdef;
+  // #define TASKLOGGING_STACK_SIZE 192
+  // StackType_t tasklogging_stack[TASKLOGGING_STACK_SIZE];
+  // StaticTask_t tasklogging_taskdef;
 
   inline TaskHandle_t active_app_task = NULL;
   inline uint32_t active_app_id = 0;
