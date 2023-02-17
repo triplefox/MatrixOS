@@ -8,7 +8,7 @@ namespace MatrixOS::NVS
   bool DeleteVariable(uint32_t hash);
 }
 
-enum SavedVariableState { NotInited, Inited, Loaded, Deleted };
+enum SavedVariableState { NotInited, Inited, Loaded, Desynced, Deleted };
 
 #define CreateSavedVar(scope, name, type, default_value) \
   SavedVariable<type> name = SavedVariable(StaticHash(scope "-" #name), (type)default_value)
@@ -43,22 +43,25 @@ class SavedVariable {
     return false;
   }
 
-  bool Loaded() { return state == SavedVariableState::Loaded; }
+  bool Loaded() { return state == SavedVariableState::Loaded || SavedVariableState::Desynced; }
+
+  bool Synced() { return state == SavedVariableState::Loaded; }
 
   bool Set(T new_value) {
+    value = new_value;
     if (MatrixOS::NVS::SetVariable(hash, &new_value, sizeof(T)))
     {
-      value = new_value;
       state = SavedVariableState::Loaded;
       return true;
     }
+    state = SavedVariableState::Desynced;
     return false;
   }
 
   bool TempSet(T new_value)  // Update the variable but do not save it.
   {
     value = new_value;
-    state = SavedVariableState::Loaded;
+    state = SavedVariableState::Desynced;
     return true;
   }
 
