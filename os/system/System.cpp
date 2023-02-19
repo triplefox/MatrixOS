@@ -223,6 +223,8 @@ namespace MatrixOS::SYS
     // Bootloader();
     if (error.empty())
       error = "Undefined Error";
+    USB::CDC::Printf("Matrix OS Error: %s\n", error.c_str());
+    USB::CDC::Printf("Free Stack: %d\n", xPortGetFreeHeapSize());
     Logging::LogError("System", "Matrix OS Error: %s", error);
 
     // Show Blue Screen

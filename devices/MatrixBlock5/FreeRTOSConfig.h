@@ -58,7 +58,7 @@ extern uint32_t SystemCoreClock;
 #define configTICK_RATE_HZ (1000)
 #define configMAX_PRIORITIES (5)
 #define configMINIMAL_STACK_SIZE (128)
-#define configTOTAL_HEAP_SIZE (4096)
+#define configTOTAL_HEAP_SIZE (8192)
 #define configMAX_TASK_NAME_LEN 16
 #define configUSE_16_BIT_TICKS 0
 #define configIDLE_SHOULD_YIELD 1
@@ -83,8 +83,8 @@ extern uint32_t SystemCoreClock;
 
 /* Run time and task stats gathering related definitions. */
 #define configGENERATE_RUN_TIME_STATS 0
-#define configUSE_TRACE_FACILITY 1  // legacy trace
-#define configUSE_STATS_FORMATTING_FUNCTIONS 1
+#define configUSE_TRACE_FACILITY 0  // legacy trace
+#define configUSE_STATS_FORMATTING_FUNCTIONS 0
 
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES 0
@@ -110,7 +110,7 @@ extern uint32_t SystemCoreClock;
 #define INCLUDE_xTaskGetIdleTaskHandle 0
 #define INCLUDE_xTimerGetTimerDaemonTaskHandle 0
 #define INCLUDE_pcTaskGetTaskName 0
-#define INCLUDE_eTaskGetState 0
+#define INCLUDE_eTaskGetState 1
 #define INCLUDE_xEventGroupSetBitFromISR 0
 #define INCLUDE_xTimerPendFunctionCall 0
 
