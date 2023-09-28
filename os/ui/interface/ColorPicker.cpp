@@ -99,33 +99,21 @@ namespace MatrixOS::UIInterface
 {
   bool ColorPicker(Color& color) {
     float hue = 0;
-    bool aborted = false;
+    uint8_t stage = 0;
 
     // Setup
     UI colorPicker("Color Picker");
 
-    colorPicker.SetKeyEventHandler([&](KeyEvent* keyEvent) -> bool {
-      if (keyEvent->id == FUNCTION_KEY)
-      {
-        if (keyEvent->info.state == PRESSED)
-        {
-          aborted = true;
-          colorPicker.Exit();
-        }
-        return true;
-      }
-      return false;
-    });
-
     // Phase 1 - Hue selection
     UIHueSelector hueSelector(Dimension(8, 8), [&](float selected_hue) -> void {
       hue = selected_hue;
+      stage = 1;
       colorPicker.Exit();
     });
     colorPicker.AddUIComponent(hueSelector, Point(0, 0));
     colorPicker.Start();
 
-    if(aborted)
+    if(stage != 1)
     { return false; }
 
     colorPicker.ClearUIComponents();
@@ -133,12 +121,13 @@ namespace MatrixOS::UIInterface
     // Phase 2 - Satuation + Value
     UIShadeSelector shadeSelector(Dimension(8, 8), hue, [&](Color selectedColor) -> void {
       color = selectedColor;
+      stage = 2;
       colorPicker.Exit();
     });
     colorPicker.AddUIComponent(shadeSelector, Point(0, 0));
     colorPicker.Start();
 
-    if (aborted)
+    if (stage != 2)
     { return false; }
 
     // Return

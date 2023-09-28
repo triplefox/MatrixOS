@@ -137,7 +137,7 @@ bool ScanFN() {
     Fract16 read = HAL_GPIO_ReadPin(FN_GPIO_Port, FN_Pin) * UINT16_MAX;
     if (fnState.update(read, false))
     {
-      if (NotifyOS(0, &fnState))
+      if (NotifyOS(FUNCTION_KEY, &fnState))
       { return true; }
     }
     return false;
@@ -150,7 +150,7 @@ bool ScanFN() {
       for (uint8_t y = 0; y < Device::y_size; y++)
       {
         Fract16 read = HAL_GPIO_ReadPin(keypad_read_pins[y].port, keypad_read_pins[y].pin) * UINT16_MAX;
-       bool updated = keypadState[x][y].update(read, true);
+       bool updated = keypadState[x][y].update(read, false);
         if (updated)
         {
           uint16_t keyID = (1 << 12) + (x << 6) + y;
