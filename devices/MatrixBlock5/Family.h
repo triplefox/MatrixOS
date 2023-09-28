@@ -9,6 +9,8 @@
 #include "Drivers/NVS.h"
 
 #define FUNCTION_KEY 0  // Keypad Code for main function key
+#define DEVICE_APPLICATIONS
+#define DEVICE_SETTING
 
 #define DEVICE_SAVED_VAR_SCOPE "Device"
 
@@ -36,7 +38,8 @@ namespace Device
   const uint8_t y_size = 8;
 
 #define MAX_LED_LAYERS 5
-  inline uint16_t keypad_scanrate = 60;
+  inline uint16_t keypad_scanrate = 120;
+  inline uint16_t touchbar_scanrate = 60;
   inline uint16_t fps = 120;  // Depends on the FreeRTOS tick speed
 
   inline uint8_t brightness_level[8] = {8, 12, 24, 40, 64, 90, 128, 168};
@@ -67,12 +70,16 @@ namespace Device
 
     void Init();
     void InitKeyPad();
+    void InitTouchbar();
 
     void Start();
     void StartKeyPad();
+    void StartTouchBar();
 
+    bool Scan();
     bool ScanFN();
     bool ScanKeyPad();
+    bool ScanTouchBar();
     
     void Clear();
     bool NotifyOS(uint16_t keyID, KeyInfo* keyInfo);
@@ -86,6 +93,7 @@ namespace Device
   namespace LED
   {
     void Init();
+    void Start();
   }
 }
 

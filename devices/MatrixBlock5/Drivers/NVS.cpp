@@ -10,8 +10,8 @@
 
 namespace MatrixOS::USB::CDC
 {
-  void Print(char const* str);
-  void Println(char const* str);
+  void Print(string str);
+  void Println(string str);
 }
 
 namespace Device::NVS
@@ -76,7 +76,6 @@ namespace Device::NVS
   }
 
   vector<char> Read(uint32_t hash) {
-    return std::vector<char>(0);
     // MatrixOS::USB::CDC::Println("Reading Key");
     uint16_t virtual_address = FindKey(hash);
     if (virtual_address == 0xFFFF)
@@ -91,7 +90,6 @@ namespace Device::NVS
   }
 
   bool Write(uint32_t hash, void* pointer, uint16_t length) {
-    return false;
     uint16_t oldAddress = FindKey(hash);
     // Find Which Page to Write
     int8_t page = CheckSpace(length);
@@ -133,6 +131,7 @@ namespace Device::NVS
     }
     return true;
   }
+  
   int8_t CheckSpace(uint16_t length) {
     for (uint8_t page = 0; page < nums_of_page; page++)
     {

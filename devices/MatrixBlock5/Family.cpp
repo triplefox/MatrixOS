@@ -1,4 +1,6 @@
 #include "Device.h"
+#include "MatrixOS.h"
+#include "ui/UI.h"
 
 namespace MatrixOS::SYS
 {
@@ -19,18 +21,36 @@ namespace Device
     USB::Init();
     LED::Init();
     KeyPad::Init();
-    // TouchBar_Init();
-    // NVS::Init(); //Not working TODO FIX
-
-    // while(1)
-    // {
-    //   char buffer[] = "Hello World";
-    //   HAL_UART_Transmit(&huart4, (uint8_t*)buffer, strlen(buffer), 100);
-    // }
+    NVS::Init();
   }
 
   void DeviceStart() {
     KeyPad::Start();
+    Device::LED::Start();
+
+    Device::KeyPad::Scan();
+    //Use KeyInfo->velocity instead KeyInfo->Active() because it might still be debouncing
+    if (KeyPad::GetKey(KeyPad::XY2ID(Point(0, 0)))->velocity && KeyPad::GetKey(KeyPad::XY2ID(Point(1, 1)))->velocity)
+    { MatrixOS::SYS::ExecuteAPP("203 Electronics", "Matrix Factory Menu"); }
+    else if (KeyPad::GetKey(KeyPad::XY2ID(Point(6, 6)))->velocity &&
+             KeyPad::GetKey(KeyPad::XY2ID(Point(7, 7)))->velocity)
+    {
+      KeyPad::Clear();
+      MatrixOS::UserVar::brightness.Set(Device::brightness_level[0]);
+    }
+    else if (KeyPad::GetKey(KeyPad::XY2ID(Point(0, 5)))->velocity &&
+             KeyPad::GetKey(KeyPad::XY2ID(Point(1, 6)))->velocity &&
+             KeyPad::GetKey(KeyPad::XY2ID(Point(0, 7)))->velocity)
+    {
+      MatrixOS::LED::SetColor(Point(2, 2), Color(0xFF00FF));
+      MatrixOS::LED::SetColor(Point(5, 2), Color(0xFF00FF));
+      MatrixOS::LED::SetColor(Point(2, 5), Color(0xFF00FF));
+      MatrixOS::LED::SetColor(Point(5, 5), Color(0xFF00FF));
+      MatrixOS::LED::Update();
+      MatrixOS::SYS::DelayMs(1500);
+      Device::NVS::Clear();
+      MatrixOS::SYS::Reboot();
+    }
   }
 
   void Reboot() {
@@ -158,6 +178,7 @@ void NMI_Handler(void) {
 }
 
 void HardFault_Handler(void) {
+  
   MatrixOS::SYS::ErrorHandler("Hard Fault");
   while (true)
   {}
@@ -169,11 +190,13 @@ void MemManage_Handler(void) {
 }
 
 void BusFault_Handler(void) {
+  MatrixOS::SYS::ErrorHandler("Bus Fault");
   while (true)
   {}
 }
 
 void UsageFault_Handler(void) {
+  MatrixOS::SYS::ErrorHandler("Usage Fault");
   while (true)
   {}
 }
