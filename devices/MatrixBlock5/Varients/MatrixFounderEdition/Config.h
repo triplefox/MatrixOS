@@ -75,3 +75,5 @@ inline GPIO fn_pin = GPIO(FN_GPIO_Port, FN_Pin);
 
 inline GPIO touch_clock_pin = GPIO(TouchClock_GPIO_Port, TouchClock_Pin);
 inline GPIO touch_data_pin = GPIO(TouchData_GPIO_Port, TouchData_Pin);
+
+inline uint8_t touchbar_map[16] = {4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3};

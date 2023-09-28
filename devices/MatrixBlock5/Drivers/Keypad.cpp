@@ -6,7 +6,7 @@ namespace Device::KeyPad
   StaticTimer_t keypad_timer_def;
   TimerHandle_t keypad_timer;
 
-  void ScanTimerCallback(TimerHandle_t xTimer) {
+  void KeyPadScanTimerCallback(TimerHandle_t xTimer) {
     if (ScanFN())
       return;
     if (ScanKeyPad())
@@ -76,13 +76,13 @@ namespace Device::KeyPad
 
   void StartKeyPad() {
     keypad_timer = xTimerCreateStatic(NULL, configTICK_RATE_HZ / Device::keypad_scanrate, true, NULL,
-                                      ScanTimerCallback, &keypad_timer_def);
+                                      KeyPadScanTimerCallback, &keypad_timer_def);
     xTimerStart(keypad_timer, 0);
   }
 
   void Start() {
     StartKeyPad();
-    // StartTouchBar();
+    StartTouchBar();
   }
 
   void Clear() {
@@ -132,6 +132,16 @@ namespace Device::KeyPad
     return nullptr;  // Return an empty KeyInfo
   }
 
+bool Scan()
+{
+  if (ScanFN())
+    return true;
+  if (ScanKeyPad())
+    return true;
+  if (ScanTouchBar())
+    return true;
+  return false;
+}
 
 bool ScanFN() {
     Fract16 read = HAL_GPIO_ReadPin(FN_GPIO_Port, FN_Pin) * UINT16_MAX;
@@ -160,7 +170,7 @@ bool ScanFN() {
       }
       HAL_GPIO_WritePin(keypad_write_pins[x].port, keypad_write_pins[x].pin, GPIO_PIN_RESET);
       volatile int i;
-      for (i = 0; i < 5; ++i)
+      for (i = 0; i < 20; ++i)
       {}  // Add small delay
     }
     return false;
