@@ -43,7 +43,7 @@ class SavedVariable {
     return false;
   }
 
-  bool Loaded() { return state == SavedVariableState::Loaded || SavedVariableState::Desynced; }
+  bool Loaded() { return state == SavedVariableState::Loaded || state == SavedVariableState::Desynced; }
 
   bool Synced() { return state == SavedVariableState::Loaded; }
 
