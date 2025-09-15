@@ -290,6 +290,7 @@ void SameGame::Render()
       if(!fell && timeSinceEvent >= 250) // pause after fall completes
       {
         gameState = Waiting;
+        RenderXferBoard();
         MLOGD("SameGame", "Waiting");
         lastEventTime = MatrixOS::SYS::Millis();
       }
@@ -298,7 +299,6 @@ void SameGame::Render()
   else if(gameState == Waiting)
   {
 
-    RenderXferBoard();
     MatrixOS::LED::FillPartition("Underglow", ColorEffects::ColorBreath(GetCellColor(lastColor), 
         2000, lastEventTime - 500));
 
@@ -391,6 +391,7 @@ void SameGame::Render()
         }
         else {
           gameState = Waiting;
+          RenderXferBoard();
           MLOGD("SameGame", "Waiting");
           lastEventTime = MatrixOS::SYS::Millis();
         }
