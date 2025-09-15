@@ -21,6 +21,7 @@ CustomControlMap:CustomControlMap
 Lighting:Lighting
 Dice:Dice
 Reversi:Reversi
+SameGame:SameGame
 PolyPlayground:PolyPlayground
 Strum:Strum
 
