@@ -13,11 +13,11 @@ void SameGame::Setup() {
 void SameGame::Loop()
 {
   struct KeyEvent keyEvent;
-  while (MatrixOS::KEYPAD::Get(&keyEvent))
-  { KeyEventHandler(keyEvent.id, &keyEvent.info); }
 
   if(renderTimer.Tick(1000/Device::LED::fps))
   {
+    while (MatrixOS::KEYPAD::Get(&keyEvent))
+    { KeyEventHandler(keyEvent.id, &keyEvent.info); }
     Render();
   }
 }
