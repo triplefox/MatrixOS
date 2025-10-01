@@ -1,4 +1,4 @@
-#include "Family.h"
+#include "Device.h"
 #include "timers.h"
 #include "driver/gpio.h"
 
@@ -9,7 +9,7 @@ namespace Device::KeyPad
   StaticTimer_t touchbar_timer_def;
   TimerHandle_t touchbar_timer;
 
-  void TouchBarTimerHandler()  // This exists because return type of TouchBarScan is bool
+  IRAM_ATTR void TouchBarTimerHandler()  // This exists because return type of TouchBarScan is bool
   {
     if(touchbar_enable) ScanTouchBar();
   }
@@ -41,7 +41,7 @@ namespace Device::KeyPad
     xTimerStart(touchbar_timer, 0);
   }
 
-  bool ScanTouchBar() {
+  IRAM_ATTR bool ScanTouchBar() {
     for (uint8_t i = 0; i < touchbar_size; i++)
     {
       gpio_set_level(touchClock_Pin, 1);
@@ -51,7 +51,7 @@ namespace Device::KeyPad
       gpio_set_level(touchClock_Pin, 0);
 
       uint8_t key_id = touchbar_map[i];
-      bool updated = touchbarState[key_id].update(binary_config, reading);
+      bool updated = touchbarState[key_id].Update(binary_config, reading);
       if (updated)
       {
         uint16_t keyID = (2 << 12) + key_id;

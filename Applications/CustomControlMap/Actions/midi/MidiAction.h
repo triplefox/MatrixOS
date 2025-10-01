@@ -203,7 +203,7 @@ namespace MidiAction
   }
 
   static bool KeyEvent(UADRuntime* uadRT, ActionInfo* actionInfo, cb0r_t actionData, KeyInfo* keyInfo) {
-    if (keyInfo->state != PRESSED && keyInfo->state != RELEASED && keyInfo->state != AFTERTOUCH)
+    if (keyInfo->State() != PRESSED && keyInfo->State() != RELEASED && keyInfo->State() != AFTERTOUCH)
     {
       return false;
     }
@@ -224,11 +224,11 @@ namespace MidiAction
       }
       case AnalogSource::Momentary:
       {
-        if (keyInfo->state == PRESSED)
+        if (keyInfo->State() == PRESSED)
         {
           output_value = data.end;
         }
-        else if (keyInfo->state == RELEASED)
+        else if (keyInfo->State() == RELEASED)
         {
           output_value = data.begin;
         }
@@ -240,7 +240,7 @@ namespace MidiAction
       }
       case AnalogSource::Persistent:
       {
-        if (keyInfo->state == PRESSED)
+        if (keyInfo->State() == PRESSED)
         {
           output_value = data.end;
         }
@@ -255,7 +255,7 @@ namespace MidiAction
         ActionInfo groupActionInfo = *actionInfo;
         groupActionInfo.index = 255;
         groupActionInfo.actionType = ActionType::EFFECT;
-        if (keyInfo->state == PRESSED)
+        if (keyInfo->State() == PRESSED)
         {
           uint32_t registerValue;
           if(!uadRT->GetRegister(actionInfo, &registerValue))
@@ -298,18 +298,18 @@ namespace MidiAction
       }
       case AnalogSource::KeyForce:
       {
-        if (keyInfo->state == RELEASED)
+        if (keyInfo->State() == RELEASED)
         {
           output_value = data.begin;
         }
-        else if(keyInfo->velocity == FRACT16_MAX)
+        else if(keyInfo->Force() == FRACT16_MAX)
         {
           output_value = data.end;
         }
         else
         {
           int32_t range = data.end - data.begin;
-          output_value = data.begin + (((uint16_t)keyInfo->velocity * range) >> 16); // I know this is offed by one (velocity max is 0x7FFF but >> 16 is 0x8000) but it's fine
+          output_value = data.begin + (((uint16_t)keyInfo->Force() * range) >> 16); // I know this is offed by one (velocity max is 0x7FFF but >> 16 is 0x8000) but it's fine
         }
         break;
       }
@@ -319,28 +319,28 @@ namespace MidiAction
     {
       case MidiType::Note:
       {
-        MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, EMidiStatus::NoteOn, data.channel, data.note, output_value));
+        MatrixOS::MIDI::Send(MidiPacket::NoteOn(data.channel, data.note, output_value));
         return true;
       }
       case MidiType::ControlChange:
       {
-        MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, EMidiStatus::ControlChange, data.channel, data.control, output_value));
+        MatrixOS::MIDI::Send(MidiPacket::ControlChange(data.channel, data.control, output_value));
         return true;
       }
       case MidiType::ProgramChange:
       {
-        MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, EMidiStatus::ProgramChange, data.channel, data.control, 0));
+        MatrixOS::MIDI::Send(MidiPacket::ProgramChange(data.channel, data.control));
         return true;
       }
       case MidiType::ChannelPressure:
       {
-        MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, EMidiStatus::ChannelPressure, data.channel, output_value, 0));
+        MatrixOS::MIDI::Send(MidiPacket::ChannelPressure(data.channel, output_value));
         return true;
       }
       case MidiType::PitchBend:
       {
           MLOGD(TAG, "Pitch Bend: %d", output_value);
-          MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, EMidiStatus::PitchChange, data.channel, output_value));
+          MatrixOS::MIDI::Send(MidiPacket::PitchBend(data.channel, output_value));
           return true;
       }
       case MidiType::SysEx:
@@ -368,38 +368,38 @@ namespace MidiAction
       }
       case MidiType::RPN:
       {
-          MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, EMidiStatus::ControlChange, data.channel, 101, (data.control >> 7) & 0x7F));
-          MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, EMidiStatus::ControlChange, data.channel, 100, data.control & 0x7F));
-          MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, EMidiStatus::ControlChange, data.channel, 6, (output_value >> 7) & 0x7F));
-          MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, EMidiStatus::ControlChange, data.channel, 38, output_value & 0x7F));
+          MatrixOS::MIDI::Send(MidiPacket::ControlChange(data.channel, 101, (data.control >> 7) & 0x7F));
+          MatrixOS::MIDI::Send(MidiPacket::ControlChange(data.channel, 100, data.control & 0x7F));
+          MatrixOS::MIDI::Send(MidiPacket::ControlChange(data.channel, 6, (output_value >> 7) & 0x7F));
+          MatrixOS::MIDI::Send(MidiPacket::ControlChange(data.channel, 38, output_value & 0x7F));
           return true;
       }
       case MidiType::NRPN:
       {
-          MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, EMidiStatus::ControlChange, data.channel, 99, (data.control >> 7) & 0x7F));
-          MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, EMidiStatus::ControlChange, data.channel, 98, data.control & 0x7F));
-          MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, EMidiStatus::ControlChange, data.channel, 6, (output_value >> 7) & 0x7F));
-          MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, EMidiStatus::ControlChange, data.channel, 38, output_value & 0x7F));
+          MatrixOS::MIDI::Send(MidiPacket::ControlChange(data.channel, 99, (data.control >> 7) & 0x7F));
+          MatrixOS::MIDI::Send(MidiPacket::ControlChange(data.channel, 98, data.control & 0x7F));
+          MatrixOS::MIDI::Send(MidiPacket::ControlChange(data.channel, 6, (output_value >> 7) & 0x7F));
+          MatrixOS::MIDI::Send(MidiPacket::ControlChange(data.channel, 38, output_value & 0x7F));
           return true;
       }
       case MidiType::Start:
       {
-        MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, EMidiStatus::Start, 0, 0, 0));
+        MatrixOS::MIDI::Send(MidiPacket::Start());
         return true;
       }
       case MidiType::Continue:
       {
-        MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, EMidiStatus::Continue, 0, 0, 0));
+        MatrixOS::MIDI::Send(MidiPacket::Continue());
         return true;
       }
       case MidiType::Stop:
       {
-        MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, EMidiStatus::Stop, 0, 0, 0));
+        MatrixOS::MIDI::Send(MidiPacket::Stop());
         return true;
       }
       case MidiType::Reset:
       {
-        MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, EMidiStatus::Reset, 0, 0, 0));
+        MatrixOS::MIDI::Send(MidiPacket::Reset());
         return true;
       }
     }

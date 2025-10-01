@@ -8,8 +8,9 @@
 #include "AppLauncherPicker.h"
 #include "AppLauncherBarEditMode.h"
 #include "AppLauncherPickerEditMode.h"
+#include "PythonAppDiscovery.h"
 
-#define APP_FOLDER_COLOR_HASH_KEY  Hash("203 Systems-Shell-Folder-Colors")
+#define APP_FOLDER_COLOR_HASH_KEY  StringHash("203 Systems-Shell-Folder-Colors")
 
 namespace MatrixOS::SYS
 {
@@ -17,7 +18,7 @@ namespace MatrixOS::SYS
   uint16_t GetApplicationCount();
 }  // Use non exposed Matrix OS API
 
-void Shell::Setup()
+void Shell::Setup(const vector<string>& args)
 {
   #ifdef configUSE_FREERTOS_PROVIDED_HEAP
     MLOGD("Shell", "Matrix OS Free Heap Size: %.2fkb (%d%%)", xPortGetFreeHeapSize() / 1024.0f, xPortGetFreeHeapSize() * 100 / configTOTAL_HEAP_SIZE);
@@ -46,6 +47,8 @@ void Shell::Loop() {
 void Shell::InitializeFolderSystem() {
   // Clear and initialize folders
   folders.clear();
+  python_app_infos.clear();
+  all_applications.clear();
 
   // Load folder colors
   MatrixOS::NVS::GetVariable(APP_FOLDER_COLOR_HASH_KEY, folder_colors, sizeof(folder_colors));
@@ -57,6 +60,14 @@ void Shell::InitializeFolderSystem() {
     folders[i] = {{}};
   }
 
+  // First, add all native apps to all_applications
+  for (const auto& [app_id, app_info] : applications) {
+    all_applications.emplace(app_id, ApplicationEntry(app_info));
+  }
+
+  // Then discover and add Python applications
+  DiscoverPythonApps();
+
   // Try to load existing folder vectors from NVS
   bool folders_loaded = false;
   for (uint8_t i = 0; i < FOLDER_COUNT; i++) {
@@ -67,7 +78,10 @@ void Shell::InitializeFolderSystem() {
   }
   LoadFolderVector(FOLDER_HIDDEN);
   LoadFolderVector(FOLDER_INVISIBLE);
-  
+
+  // Clean up any invalid app IDs that no longer exist
+  CleanupInvalidApps();
+
   // Build a set of all apps that are already in folders
   std::unordered_set<uint32_t> apps_in_folders;
   for (auto& [folder_id, folder] : folders) {
@@ -75,26 +89,57 @@ void Shell::InitializeFolderSystem() {
       apps_in_folders.insert(app_id);
     }
   }
-  
+
   // Check if any apps are missing from the folders and add them to appropriate folders
   bool missing_apps_found = false;
+
+  // First, check native apps in registration order
   for (const auto& [order_id, app_id] : application_ids) {
-    auto application_it = applications.find(app_id);
-    if(application_it == applications.end()) {
-      continue;
-    }
-    
     // If app is not in any folder, add it
     if (apps_in_folders.find(app_id) == apps_in_folders.end()) {
-      Application_Info* application = application_it->second;
-      uint8_t folder_id = GetAppFolder(app_id, application);
-      
+      auto app_entry_it = all_applications.find(app_id);
+      if (app_entry_it == all_applications.end()) {
+        continue;
+      }
+
+      uint8_t folder_id = GetAppFolder(app_id, app_entry_it->second);
+
       // Add to the appropriate folder
       folders[folder_id].app_ids.push_back(app_id);
       missing_apps_found = true;
+
+      Application_Info* info = app_entry_it->second.native.info;
+      MLOGD("Shell", "Added native app %s-%s to folder %d",
+            info->author.c_str(),
+            info->name.c_str(),
+            folder_id);
     }
   }
-  
+
+  // Then, check Python apps in discovery order
+  for (auto& py_app : python_app_infos) {
+    uint32_t app_id = StringHash(py_app.info.author + "-" + py_app.info.name);
+
+    // If app is not in any folder, add it
+    if (apps_in_folders.find(app_id) == apps_in_folders.end()) {
+      auto app_entry_it = all_applications.find(app_id);
+      if (app_entry_it == all_applications.end()) {
+        continue;
+      }
+
+      uint8_t folder_id = GetAppFolder(app_id, app_entry_it->second);
+
+      // Add to the appropriate folder
+      folders[folder_id].app_ids.push_back(app_id);
+      missing_apps_found = true;
+
+      MLOGD("Shell", "Added Python app %s-%s to folder %d",
+            py_app.info.author.c_str(),
+            py_app.info.name.c_str(),
+            folder_id);
+    }
+  }
+
   // Save vectors if we loaded existing ones but found missing apps, or if no folders were loaded
   if (missing_apps_found || !folders_loaded) {
     SaveAllFolderVectors();
@@ -209,7 +254,7 @@ void Shell::SaveFolderVector(uint8_t folder_id) {
   }
   
   std::string nvs_key_str = "203 Systems-Shell-Folder-" + std::to_string(folder_id) + "-Apps";
-  uint32_t nvs_key = Hash(nvs_key_str);
+  uint32_t nvs_key = StringHash(nvs_key_str);
   std::vector<uint32_t>& app_vector = folders[folder_id].app_ids;
   
   if (!app_vector.empty()) {
@@ -225,7 +270,7 @@ void Shell::LoadFolderVector(uint8_t folder_id) {
   }
   
   std::string nvs_key_str = "203 Systems-Shell-Folder-" + std::to_string(folder_id) + "-Apps";
-  uint32_t nvs_key = Hash(nvs_key_str);
+  uint32_t nvs_key = StringHash(nvs_key_str);
   
   int stored_size_int = MatrixOS::NVS::GetSize(nvs_key);
   
@@ -253,9 +298,52 @@ void Shell::SaveAllFolderVectors() {
   SaveFolderVector(FOLDER_INVISIBLE);
 }
 
-uint8_t Shell::GetAppFolder(uint32_t app_id, Application_Info* app_info) {
+void Shell::CleanupInvalidApps() {
+  bool any_changes = false;
+
+  // Clean up all folders including special ones
+  std::vector<uint8_t> all_folders;
+  for (uint8_t i = 0; i < FOLDER_COUNT; i++) {
+    all_folders.push_back(i);
+  }
+  all_folders.push_back(FOLDER_HIDDEN);
+  all_folders.push_back(FOLDER_INVISIBLE);
+
+  for (uint8_t folder_id : all_folders) {
+    std::vector<uint32_t>& app_ids = folders[folder_id].app_ids;
+    std::vector<uint32_t> valid_apps;
+
+    for (uint32_t app_id : app_ids) {
+      // Check if this app exists in the all_applications map
+      auto app_it = all_applications.find(app_id);
+      if (app_it != all_applications.end()) {
+        // App exists, keep it
+        valid_apps.push_back(app_id);
+      } else {
+        // App doesn't exist anymore, log and remove
+        MLOGD("Shell", "Removing invalid app ID %X from folder %d", app_id, folder_id);
+        any_changes = true;
+      }
+    }
+
+    // Update the folder with only valid apps
+    if (app_ids.size() != valid_apps.size()) {
+      app_ids = valid_apps;
+      SaveFolderVector(folder_id);
+    }
+  }
+
+  if (any_changes) {
+    MLOGI("Shell", "Cleaned up invalid app entries");
+  }
+}
+
+uint8_t Shell::GetAppFolder(uint32_t app_id, const ApplicationEntry& app_entry) {
   // Check if app is invisible first
-  if (!app_info->visibility) {
+  Application_Info* info = (app_entry.type == ApplicationType::Native) ?
+                           app_entry.native.info :
+                           &(app_entry.python.info->info);
+  if (!info->visibility) {
     return FOLDER_INVISIBLE;
   }
 
@@ -269,6 +357,33 @@ uint8_t Shell::GetAppFolder(uint32_t app_id, Application_Info* app_info) {
 
   // App not found in any folder, default to folder 0
   return 0;
+}
+
+void Shell::DiscoverPythonApps() {
+  MLOGI("Shell", "Starting Python application discovery");
+
+  // Scan Python apps directly into our storage
+  PythonAppDiscovery::ScanPythonApplications(python_app_infos);
+
+  // Add them to shell's application map
+  for (auto& py_app : python_app_infos) {
+    uint32_t app_id = StringHash(py_app.info.author + "-" + py_app.info.name);
+
+    // Check for duplicates
+    if (all_applications.find(app_id) != all_applications.end()) {
+      MLOGW("Shell", "Python app %s-%s conflicts with existing app, skipping",
+            py_app.info.author.c_str(), py_app.info.name.c_str());
+      continue;
+    }
+
+    // Create ApplicationEntry pointing to the stored PythonAppInfo
+    all_applications.emplace(app_id, ApplicationEntry(&py_app));
+
+    MLOGD("Shell", "Registered Python app: %s-%s (ID: %X)",
+          py_app.info.author.c_str(), py_app.info.name.c_str(), app_id);
+  }
+
+  MLOGI("Shell", "Python application discovery completed: %d apps added", python_app_infos.size());
 }
 
 void Shell::ApplicationLauncher() {
@@ -370,7 +485,7 @@ void Shell::LaunchAnimation(Point origin, Color color)
 
     if(r > endDistance) { break; }
 
-    for (uint16_t i = 0; i < MatrixOS::LED::GetLedCount(); i++)
+    for (uint16_t i = 0; i < MatrixOS::LED::GetLEDCount(); i++)
     {
       Point xy = Device::LED::Index2XY(i);
 

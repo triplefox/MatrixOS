@@ -1,6 +1,6 @@
 #include <cmath>
 #include "MatrixOS.h"
-#include "ui/UI.h"
+#include "UI/UI.h"
 
 class UIHueSelector : public UIComponent {
  public:
@@ -34,7 +34,7 @@ class UIHueSelector : public UIComponent {
   }
 
   virtual bool KeyEvent(Point xy, KeyInfo* keyInfo) {
-    if (keyInfo->state == PRESSED)
+    if (keyInfo->State() == PRESSED)
     {
       uint8_t index = (dimension.y - xy.y - 1) * dimension.x + xy.x;
       float hue = std::fmod(begin + step * index, 1.0);
@@ -84,7 +84,7 @@ class UIShadeSelector : public UIComponent {
   }
 
   virtual bool KeyEvent(Point xy, KeyInfo* keyInfo) {
-    if (keyInfo->state == PRESSED)
+    if (keyInfo->State() == PRESSED)
     {
         int16_t ui_y = dimension.y - xy.y - 1;
         float v = vBegin + ui_y * vStep;
@@ -100,12 +100,8 @@ namespace MatrixOS::UIUtility
   bool ColorPicker(Color& color) {
     float hue = 0;
     bool aborted = false;
-
-    // Setup
-    // int8_t old_layer = MatrixOS::LED::CurrentLayer();
-
-    // int8_t new_layer = MatrixOS::LED::CreateLayer();
-    UI colorPicker("Color Picker", Color(0x000000), false);
+    
+    UI colorPicker("Color Picker", Color(0x000000));
 
     colorPicker.SetKeyEventHandler([&](KeyEvent* keyEvent) -> bool {
       if (keyEvent->id == FUNCTION_KEY)

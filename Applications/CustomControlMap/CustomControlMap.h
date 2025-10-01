@@ -15,7 +15,7 @@ class CustomControlMap : public Application {
       .visibility = true,
   };
 
-  void Setup() override;
+  void Setup(const vector<string>& args) override;
   void Loop() override;
 
   const uint8_t MAX_UAD_LAYER = 16;
@@ -28,7 +28,7 @@ class CustomControlMap : public Application {
   size_t uadSize = 0;
   CreateSavedVar("CustomControlMap", menuLock, bool, false);
 
-  void KeyEventHandler(uint16_t keyID, KeyInfo* keyInfo);
+  void KeyEventHandler(KeyEvent& keyEvent);
   void Reload();
   void ActionMenu();
 

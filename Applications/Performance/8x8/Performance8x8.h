@@ -2,7 +2,7 @@
 
 #include "MatrixOS.h"
 #include "Application.h"
-#include "ui/UI.h"
+#include "UI/UI.h"
 
 #include "UINotePad.h"
 
@@ -30,7 +30,7 @@ class Performance : public Application {
   uint16_t was_combo_key;
 
   // Saved Variables
-  CreateSavedVar("Performance", velocitySensitive, bool, true);
+  CreateSavedVar("Performance", forceSensitive, bool, true);
   CreateSavedVar("Performance", menuLock, bool, false);
   CreateSavedVar("Performance", stfu, uint8_t, 0);
   CreateSavedVar("Performance", touch_combo_key, bool, false);
@@ -42,17 +42,17 @@ class Performance : public Application {
     StaticHash("203 Systems-Performance-Palette3"), 
     StaticHash("203 Systems-Performance-Palette4")};
 
-  void Setup() override;
+  void Setup(const vector<string>& args) override;
   void Loop() override;
 
   Point NoteToXY(uint8_t note);
   int8_t XYToNote(Point xy, bool altmap = false);
 
-  void MidiEventHandler(MidiPacket midiPacket);
+  void MidiEventHandler(MidiPacket& midiPacket);
   void NoteHandler(uint8_t channel, uint8_t note, uint8_t velocity);
   void SysExHandler(MidiPacket midiPacket);
 
-  void KeyEventHandler(uint16_t keyID, KeyInfo* keyInfo);
+  void KeyEventHandler(KeyEvent& keyEvent);
 
   void GridKeyEvent(Point xy, KeyInfo* KeyInfo);
   void IDKeyEvent(uint16_t keyID, KeyInfo* KeyInfo);

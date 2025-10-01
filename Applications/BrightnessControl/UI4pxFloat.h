@@ -1,6 +1,6 @@
 #pragma once
 #include <cmath>
-#include "ui/UI.h"
+#include "UI/UI.h"
 
 // TODO add negative support?
 // Only 4x8 support right now
@@ -150,7 +150,7 @@ class UI4pxFloat : public UIComponent {
   }
 
   virtual bool KeyEvent(Point xy, KeyInfo* keyInfo) {
-    if (keyInfo->state == HOLD)
+    if (keyInfo->State() == HOLD)
     {
       MatrixOS::UIUtility::TextScroll(name, GetColor());
     }

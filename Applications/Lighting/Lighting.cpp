@@ -1,7 +1,7 @@
 #include "Lighting.h"
 #include "BPMTapper.h"
 
-void Lighting::Setup() {
+void Lighting::Setup(const vector<string>& args) {
   start_time = MatrixOS::SYS::Millis();
   Update();
 }
@@ -9,8 +9,8 @@ void Lighting::Setup() {
 void Lighting::Loop()
 {
   struct KeyEvent keyEvent;
-  while (MatrixOS::KEYPAD::Get(&keyEvent))
-  { KeyEventHandler(keyEvent.id, &keyEvent.info); }
+  while (MatrixOS::KeyPad::Get(&keyEvent))
+  { KeyEventHandler(keyEvent); }
 
   if(renderTimer.Tick(1000/Device::LED::fps))
   {
@@ -93,10 +93,10 @@ void Lighting::RenderGradient()
 {
 }
 
-void Lighting::KeyEventHandler(uint16_t keyID, KeyInfo* keyInfo) {
-  if (keyID == FUNCTION_KEY)
+void Lighting::KeyEventHandler(KeyEvent& keyEvent) {
+  if (keyEvent.ID() == FUNCTION_KEY)
   {
-    if (keyInfo->state == PRESSED)
+    if (keyEvent.State() == PRESSED)
     {
       Settings();
     }
@@ -145,7 +145,7 @@ void Lighting::Settings() {
   colorBtn.SetColorFunc([&]() -> Color { return color; });
   colorBtn.SetSize(Dimension(8,2));
   colorBtn.OnPress([&]() -> void { if(MatrixOS::UIUtility::ColorPicker(color.Get())) { color.Save(); } });
-  colorBtn.ShouldEnable([&]() -> bool { return mode == RGB; });
+  colorBtn.SetEnableFunc([&]() -> bool { return mode == RGB; });
   settingsUI.AddUIComponent(colorBtn, Point(0, 6));
 
   // Mode & Speed
@@ -153,7 +153,7 @@ void Lighting::Settings() {
   rgbEffectBtn.SetName("Effect & Speed");
   rgbEffectBtn.SetColorFunc([&]() -> Color { return ApplyColorEffect(color, rgb_effect, 60000 / rgb_effect_bpm.Get(), start_time); });
   rgbEffectBtn.OnPress([&]() -> void { EffectModeAndSpeedMenu(RGB); });
-  rgbEffectBtn.ShouldEnable([&]() -> bool { return mode == RGB; });
+  rgbEffectBtn.SetEnableFunc([&]() -> bool { return mode == RGB; });
   rgbEffectBtn.SetSize(Dimension(1, 2));
   settingsUI.AddUIComponent(rgbEffectBtn, Point(0, 3));
 
@@ -164,7 +164,7 @@ void Lighting::Settings() {
   temperatureBtn.SetColorFunc([&]() -> Color { return temperature_color; });
   temperatureBtn.SetSize(Dimension(8,2));
   temperatureBtn.OnPress([&]() -> void { if(MatrixOS::UIUtility::TemperatureColorPicker(temperature_color.Get())) { temperature_color.Save(); } });
-  temperatureBtn.ShouldEnable([&]() -> bool { return mode == Temperature; });
+  temperatureBtn.SetEnableFunc([&]() -> bool { return mode == Temperature; });
   settingsUI.AddUIComponent(temperatureBtn, Point(0, 6));
 
   // Mode & Speed
@@ -172,7 +172,7 @@ void Lighting::Settings() {
   temperatureEffectBtn.SetName("Effect & Speed");
   temperatureEffectBtn.SetColorFunc([&]() -> Color { return ApplyColorEffect(temperature_color, temperature_effect, 60000 / temperature_effect_bpm.Get(), start_time); });
   temperatureEffectBtn.OnPress([&]() -> void { EffectModeAndSpeedMenu(Temperature); });
-  temperatureEffectBtn.ShouldEnable([&]() -> bool { return mode == Temperature; });
+  temperatureEffectBtn.SetEnableFunc([&]() -> bool { return mode == Temperature; });
   temperatureEffectBtn.SetSize(Dimension(1, 2));
   settingsUI.AddUIComponent(temperatureEffectBtn, Point(0, 3));
 

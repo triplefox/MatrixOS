@@ -2,7 +2,8 @@
 
 namespace MatrixOS::LED
 {
-  uint32_t led_count;
+  bool led_inited = false;
+  uint32_t led_count = 0;
 
   // static timer
   StaticTimer_t led_tmdef;
@@ -28,7 +29,7 @@ namespace MatrixOS::LED
 
   void RenderCrossfade();
 
-  void LEDTimerCallback(TimerHandle_t xTimer) {
+  IRAM_ATTR void LEDTimerCallback(TimerHandle_t xTimer) {
     xSemaphoreTake(activeBufferSemaphore, portMAX_DELAY);
     if(crossfade_active)
     {
@@ -66,9 +67,32 @@ namespace MatrixOS::LED
 
       // MLOGD("LED", "Partition %s Brightness %d (%d * %f = %f)", Device::LED::partitions[i].name.c_str(), ledPartitionBrightness[i], MatrixOS::UserVar::brightness, ledBrightnessMultiplier[i], brightness_multiplied);
     }
+    
+    needUpdate = true;
   }
 
   void Init() {
+
+    if(led_inited == false)
+    {
+      // Generate brightness level map
+      ledBrightnessMultiplier.resize(Device::LED::partitions.size());
+      ledPartitionBrightness.resize(Device::LED::partitions.size());
+
+      led_count = 0;
+      for (uint8_t i = 0; i < Device::LED::partitions.size(); i++)
+      {
+        MLOGD("LED", "Partition#%d %s Size %d", i, Device::LED::partitions[i].name.c_str(), Device::LED::partitions[i].size);
+        ledBrightnessMultiplier[i] = Device::LED::partitions[i].default_multiplier;
+        MatrixOS::NVS::GetVariable(StringHash("system_led_brightness_multiplier_" + Device::LED::partitions[i].name), &ledBrightnessMultiplier[i], sizeof(float));
+        led_count += Device::LED::partitions[i].size;
+      }
+
+      UpdateBrightness();
+
+      activeBufferSemaphore = xSemaphoreCreateMutex();
+    }
+
     for (Color* buffer : frameBuffers)
     {
       if(buffer)
@@ -79,34 +103,17 @@ namespace MatrixOS::LED
 
     frameBuffers.clear();
     
-    // Generate brightness level map
-    ledBrightnessMultiplier.resize(Device::LED::partitions.size());
-    ledPartitionBrightness.resize(Device::LED::partitions.size());
-
-    led_count = 0;
-    for (uint8_t i = 0; i < Device::LED::partitions.size(); i++)
-    {
-      MLOGD("LED", "Partition#%d %s Size %d", i, Device::LED::partitions[i].name.c_str(), Device::LED::partitions[i].size);
-      ledBrightnessMultiplier[i] = Device::LED::partitions[i].default_multiplier;
-      MatrixOS::NVS::GetVariable(Hash("system_led_brightness_multiplier_" + Device::LED::partitions[i].name), &ledBrightnessMultiplier[i], sizeof(float));
-      led_count += Device::LED::partitions[i].size;
-    }
-
-    UpdateBrightness();
-
-    if(!activeBufferSemaphore)
-    {
-      activeBufferSemaphore = xSemaphoreCreateMutex();
-    }
 
     CreateLayer(0); //Create Layer 0 - The active layer
     CreateLayer(0); //Create Layer 1 - The base layer
 
-    if(!led_tm)
+    if(led_inited == false)
     {
       led_tm = xTimerCreateStatic("LED Timer", 1000 / Device::LED::fps, pdTRUE, (void*)0, LEDTimerCallback, &led_tmdef);
       xTimerStart(led_tm, 0);
     }
+
+    led_inited = true;
   }
 
 
@@ -133,7 +140,7 @@ namespace MatrixOS::LED
     UpdateBrightness();
   }
 
-  void SetBrightnessMultiplier(string partition_name, float multiplier) {
+  bool SetBrightnessMultiplier(string partition_name, float multiplier) {
     for (uint8_t i = 0; i < Device::LED::partitions.size(); i++)
     {
       if (Device::LED::partitions[i].name == partition_name)
@@ -142,15 +149,16 @@ namespace MatrixOS::LED
         if (i == 0 && multiplier < 0.1)
         {
           MLOGW("LED", "Main Partition Multiplier can not be less than 0.1");
-          return;
+          return false;
         }
         ledBrightnessMultiplier[i] = multiplier;
-        MatrixOS::NVS::SetVariable(Hash("system_led_brightness_multiplier_" + partition_name), &multiplier, sizeof(float));
+        MatrixOS::NVS::SetVariable(StringHash("system_led_brightness_multiplier_" + partition_name), &multiplier, sizeof(float));
         UpdateBrightness();
-        return;
+        return true;
       }
     }
-    MLOGV("LED", "Partition Not Found");
+    MLOGW("LED", "Partition Not Found");
+    return false;
   }
 
   void SetColor(Point xy, Color color, uint8_t layer) {
@@ -164,9 +172,9 @@ namespace MatrixOS::LED
       return;
     }
 
-    // MLOGV("LED", "Set Color #%.2X%.2X%.2X to %d %d at Layer %d", color.R, color.G, color.B, xy.x, xy.y, layer);
     xy = xy.Rotate(UserVar::rotation, Point(Device::x_size, Device::y_size));
     uint16_t index = Device::LED::XY2Index(xy);
+    // MLOGI("LED", "Set Color #%.2X%.2X%.2X to %d %d at Layer %d (index %d)", color.R, color.G, color.B, xy.x, xy.y, layer, index);
     if (index == UINT16_MAX)return;
 
     frameBuffers[layer][index] = color;
@@ -221,13 +229,13 @@ namespace MatrixOS::LED
     { needUpdate = true; }
   }
 
-  void FillPartition(string partition, Color color, uint8_t layer)
+  bool FillPartition(string partition, Color color, uint8_t layer)
   {
 
     if(partition.empty())
     {
       Fill(color, layer);
-      return;
+      return true;
     }
 
     if (layer == 255)
@@ -235,7 +243,7 @@ namespace MatrixOS::LED
     else if (layer >= frameBuffers.size() || frameBuffers[layer] == nullptr)
     {
       MatrixOS::SYS::ErrorHandler("LED Layer Unavailable");
-      return;
+      return false;
     }
 
     vTaskSuspendAll();
@@ -258,7 +266,7 @@ namespace MatrixOS::LED
     {
       xTaskResumeAll();
       MLOGV("LED", "Partition Not Found");
-      return;
+      return false;
     }
 
     std::fill(frameBuffers[layer] + start, frameBuffers[layer] + end, color);
@@ -267,6 +275,8 @@ namespace MatrixOS::LED
 
     if(layer == 0)
     { needUpdate = true; }
+
+    return true;
   }
 
    int8_t CurrentLayer() {
@@ -413,7 +423,7 @@ namespace MatrixOS::LED
 
   // If any layer is 0, it will be show up as black（or lightless)
   // If layer 2 is 255, it will be using the top layer
-  void RenderCrossfade() {
+  IRAM_ATTR void RenderCrossfade() {
     Fract16 ratio = 0;
 
     uint32_t currentTime = MatrixOS::SYS::Millis();
@@ -468,7 +478,7 @@ namespace MatrixOS::LED
     { xTimerStart(led_tm, 0); }
   }
 
-  uint32_t GetLedCount(void) {
+  uint32_t GetLEDCount(void) {
     return led_count;
   }
 }

@@ -1,12 +1,23 @@
 #pragma once
 
-#include "tusb.h"
+#include <stdint.h>
 
 #define USB_MIDI_COUNT 2
 
-namespace MatrixOS::USB::MIDI
-{
-  void Init();
-}
+// USB mode definitions
+enum USB_MODE {
+  USB_MODE_NORMAL = 0,  // MIDI + CDC + HID
+  USB_MODE_MSC = 1      // MSC only
+};
 
-void tud_midi_rx_cb(uint8_t itf);
+namespace MatrixOS::USB
+{
+  void Init(USB_MODE mode = USB_MODE_NORMAL);
+  void SetMode(USB_MODE mode);
+  uint8_t GetMode();
+
+  namespace MIDI
+  {
+    void Init();
+  }
+}

@@ -22,7 +22,7 @@
 
 #define MATRIXOS_MAJOR_VER 3
 #define MATRIXOS_MINOR_VER 0
-#define MATRIXOS_PATCH_VER 0
+#define MATRIXOS_PATCH_VER 3
 #define MATRIXOS_RELEASE_VER 0 //This is for beta etc, doesn't take effect in Stable Release. It should also never be 0
 
 #include "ReleaseConfig.h"
@@ -31,7 +31,7 @@
 #define MATRIXOS_LOG_USBCDC
 #define MATRIXOS_LOG_COLOR
 
-#define APPLICATION_STACK_SIZE (configMINIMAL_STACK_SIZE * 16)
+#define APPLICATION_STACK_SIZE (configMINIMAL_STACK_SIZE * 32)
 
 #define KEYEVENT_QUEUE_SIZE 16
 #define MIDI_QUEUE_SIZE 128

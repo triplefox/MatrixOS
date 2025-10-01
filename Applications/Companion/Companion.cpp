@@ -1,6 +1,6 @@
 #include "Companion.h"
 
-void Companion::Setup() {
+void Companion::Setup(const vector<string>& args) {
   canvasLedLayer = MatrixOS::LED::CurrentLayer();
 
   for(uint8_t i = 0; i < 5; i++)
@@ -15,32 +15,32 @@ void Companion::Setup() {
 
 void Companion::Loop() {
   struct KeyEvent keyEvent;
-  while (MatrixOS::KEYPAD::Get(&keyEvent))
+  while (MatrixOS::KeyPad::Get(&keyEvent))
   {
-    KeyEventHandler(keyEvent.id, &keyEvent.info);
+    KeyEventHandler(keyEvent);
   }
 
   HIDReportHandler();
 }
 
-void Companion::KeyEventHandler(uint16_t keyID, KeyInfo* keyInfo) {
-  if (keyID == FUNCTION_KEY)
+void Companion::KeyEventHandler(KeyEvent& keyEvent) {
+  if (keyEvent.ID() == FUNCTION_KEY)
   {
-    if (keyInfo->state == PRESSED)
+    if (keyEvent.State() == PRESSED)
     {
       ActionMenu();
     }
   }
 
-  Point xy = MatrixOS::KEYPAD::ID2XY(keyID);
+  Point xy = MatrixOS::KeyPad::ID2XY(keyEvent.ID());
 
   if (xy && xy.x >= 0 && xy.x < 8 && xy.y >= 0 && xy.y < 8)
   {
-    if (keyInfo->state == PRESSED)
+    if (keyEvent.State() == PRESSED)
     {
       MatrixOS::HID::RawHID::Send(std::vector<uint8_t>{0x10, (uint8_t)xy.x, (uint8_t)xy.y, 0xFF});
     }
-    else if (keyInfo->state == RELEASED)
+    else if (keyEvent.State() == RELEASED)
     {
       MatrixOS::HID::RawHID::Send(std::vector<uint8_t>{0x10, (uint8_t)xy.x, (uint8_t)xy.y, 0x00});
     }

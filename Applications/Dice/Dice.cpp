@@ -1,8 +1,8 @@
 #include "Dice.h"
-#include "ui/UI.h"  // Include the UI Framework
+#include "UI/UI.h"  // Include the UI Framework
 
 // Run once
-void Dice::Setup() {
+void Dice::Setup(const vector<string>& args) {
   #ifdef FAMILY_MYSTRIX
   if(Device::deviceInfo.Model[3] == 'P'){
     underglow_enabled = true;
@@ -22,9 +22,9 @@ void Dice::Setup() {
 void Dice::Loop() {
   // Set up key event handler
   struct KeyEvent keyEvent;                 // Variable for the latest key event to be stored at
-  while (MatrixOS::KEYPAD::Get(&keyEvent))  // While there is still keyEvent in the queue
+  while (MatrixOS::KeyPad::Get(&keyEvent))  // While there is still keyEvent in the queue
   {
-    KeyEventHandler(keyEvent.id, &keyEvent.info);
+    KeyEventHandler(keyEvent);
   }  // Handle them
 
   if (!renderTimer.Tick(1000 / Device::LED::fps))
@@ -76,14 +76,14 @@ void Dice::Loop() {
 }
 
 // Handle the key event from the OS
-void Dice::KeyEventHandler(uint16_t keyID, KeyInfo* keyInfo) {
-  if (keyID == FUNCTION_KEY)  // FUNCTION_KEY is pre defined by the device, as the keyID for the system function key
+void Dice::KeyEventHandler(KeyEvent& keyEvent) {
+  if (keyEvent.ID() == FUNCTION_KEY)  // FUNCTION_KEY is pre defined by the device, as the keyID for the system function key
   {
-    if (keyInfo->state == HOLD)
+    if (keyEvent.State() == HOLD)
     {
       Settings();  // Open UI Menu
     }
-    else if (keyInfo->state == RELEASED)  // If the function key is released and not hold
+    else if (keyEvent.State() == RELEASED)  // If the function key is released and not hold
     {
       rolling_start_time = MatrixOS::SYS::Millis();
       current_phase = Rolling;
@@ -174,7 +174,7 @@ void Dice::Settings() {
   dotFaceSelectorBtn.SetColor(Color(0x00FFFF));
   dotFaceSelectorBtn.SetSize(Dimension(4, 1));
   dotFaceSelectorBtn.OnPress([&]() -> void { DotFaceSelector(); });
-  dotFaceSelectorBtn.ShouldEnable([&]() -> bool { return mode == Dot; });
+  dotFaceSelectorBtn.SetEnableFunc([&]() -> bool { return mode == Dot; });
   settingsUI.AddUIComponent(dotFaceSelectorBtn, Point(2, 7));
 
   // Number Mode
@@ -183,7 +183,7 @@ void Dice::Settings() {
   numberFacesSelectorBtn.SetColor(Color(0x00FFFF));
   numberFacesSelectorBtn.SetSize(Dimension(4, 1));
   numberFacesSelectorBtn.OnPress([&]() -> void { number_faces = MatrixOS::UIUtility::NumberSelector8x8(number_faces, Color(0x00FFFF), "Face Selector", 1, 99); });
-  numberFacesSelectorBtn.ShouldEnable([&]() -> bool { return mode == Number; });
+  numberFacesSelectorBtn.SetEnableFunc([&]() -> bool { return mode == Number; });
   settingsUI.AddUIComponent(numberFacesSelectorBtn, Point(2, 7));
 
   // Second, set the key event handler to match the intended behavior
@@ -350,7 +350,7 @@ void Dice::RollDice() {
   } while (rolled_number == last_rolled_number);
 }
 
-void Dice::RenderUnderglow(UnderglowEffectMode mode, Color color, uint8_t period) {
+void Dice::RenderUnderglow(UnderglowEffectMode mode, Color color, uint16_t period) {
   if (!underglow_enabled) { return; }
   MatrixOS::LED::FillPartition("Underglow", ApplyColorEffect(color, mode, period, timestamp), 1);
 }

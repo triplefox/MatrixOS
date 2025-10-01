@@ -1,5 +1,6 @@
 #include "MatrixOS.h"
 #include "USB.h"
+#include "tusb.h"
 
 #define NKRO_KEY_COUNT (8*13)
 
@@ -101,13 +102,15 @@ namespace MatrixOS::HID::Keyboard
     }
 
     // User API
-    bool Write(KeyboardKeycode k)
+    bool Tap(KeyboardKeycode k, uint16_t length_ms)
     {
-    bool ret = Press(k);
-    if(ret){
-        Release(k);
-    }
-    return ret;
+        bool ret = Press(k);
+        if(ret)
+        {
+            SYS::DelayMs(length_ms);
+            ret = Release(k);
+        }
+        return ret;
     }
 
     bool Press(KeyboardKeycode k)

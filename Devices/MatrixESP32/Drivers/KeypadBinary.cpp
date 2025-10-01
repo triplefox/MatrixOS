@@ -1,4 +1,4 @@
-#include "Family.h"
+#include "Device.h"
 // #include "ulp_keypad.h"
 #include "ulp_riscv.h"
 #include "rom/ets_sys.h"
@@ -42,7 +42,7 @@ namespace Device::KeyPad::Binary
     // ulp_riscv_run();
   }
 
-   bool Scan()
+  IRAM_ATTR bool Scan()
   {
     for(uint8_t x = 0; x < X_SIZE; x++)
     {
@@ -51,13 +51,13 @@ namespace Device::KeyPad::Binary
       {
         Fract16 reading = gpio_get_level(keypad_read_pins[y]) * FRACT16_MAX;
         // MLOGD("Keypad", "%d %d Read: %d", x, y, gpio_get_level(keypad_read_pins[y]));
-        bool updated = keypadState[x][y].update(binary_config, reading);
+        bool updated = keypadState[x][y].Update(binary_config, reading);
         if (updated)
         {
           uint16_t keyID = (1 << 12) + (x << 6) + y;
           if (NotifyOS(keyID, &keypadState[x][y]))
-          {           
-            return true; 
+          {
+            return true;
           }
         }
       }

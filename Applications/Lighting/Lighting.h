@@ -1,8 +1,8 @@
 #pragma once
 
 #include "MatrixOS.h"
-#include "ui/UI.h"
-#include "ui/UIUtilities.h"
+#include "UI/UI.h"
+#include "UI/UIUtilities.h"
 #include "Application.h"
 #include "TemperatureColorPicker.h"
 
@@ -35,9 +35,9 @@ class Lighting : public Application {
       .version = 2,
       .visibility = true,
   };
-  void Setup() override;
+  void Setup(const vector<string>& args) override;
   void Loop() override;
-  void KeyEventHandler(uint16_t keyID, KeyInfo* keyInfo);
+  void KeyEventHandler(KeyEvent& keyEvent);
 
   void Update();
   Color ApplyColorEffect(Color color, ColorEffectMode effect, uint16_t period, uint16_t start_time);

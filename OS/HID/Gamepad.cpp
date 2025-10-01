@@ -1,5 +1,6 @@
 #include "MatrixOS.h"
 #include "USB.h"
+#include "tusb.h"
 
 typedef struct {
 	// 32 Buttons, 6 Axis, 2 D-Pads
@@ -25,6 +26,14 @@ namespace MatrixOS::HID::Gamepad
 
         tud_hid_n_report(0, REPORT_ID_GAMEPAD, &_report, 17); // sizeof(_report));
     }
+
+    void Tap(uint8_t b, uint16_t length_ms)
+    {
+        Press(b);
+        SYS::DelayMs(length_ms);
+        Release(b);
+    }
+
 
     void Press(uint8_t b)
     {

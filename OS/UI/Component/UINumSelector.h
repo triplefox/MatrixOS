@@ -1,5 +1,5 @@
 #include "MatrixOS.h"
-#include "shared/UISelectorUtils.h"
+#include "UISelectorBase.h"
 
 // Difference between NumSelector and Item Selector is that everything lower than Output will be lit instead of single item being lit
 template <class T>
@@ -57,7 +57,7 @@ class UINumItemSelector : public UIComponent {
   virtual bool KeyEvent(Point xy, KeyInfo* keyInfo) {
     uint16_t id = PointToIndex(xy, dimension, direction);
     if (id > count){return false;}
-    if (keyInfo->state == PRESSED)
+    if (keyInfo->State() == PRESSED)
     { 
       *output = items[id]; 
       OnChangeCallback(*output);

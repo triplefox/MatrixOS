@@ -1,6 +1,9 @@
 #pragma once
 
 #include "Framework.h"
+#include "MatrixOSConfig.h"
+#include "Family.h"
+#include "DefaultConfigs.h"
 
 namespace Device
 {
@@ -71,13 +74,33 @@ namespace Device
     void Clear();
   }
 
-// #ifdef DEVICE_BATTERY
-//   namespace Battery
-//   {
-//     bool Charging();
-//     float Voltage();
-//   }
-// #endif
+#if DEVICE_STORAGE == 1
+  namespace Storage
+  {
+    // Storage subsystem is initialized automatically
+    struct StorageStatus
+    {
+      bool available;          // Storage is available for read/write operations
+      bool write_protected;    // Card is write protected
+      uint32_t sector_count;   // Total number of sectors (0 if unavailable)
+      uint16_t sector_size;    // Size of each sector in bytes (typically 512)
+      uint32_t block_size;     // Erase block size in sectors (for filesystem optimization)
+    };
+
+    bool Available();
+    const StorageStatus* Status();
+    bool ReadSectors(uint32_t lba, uint32_t sector_count, void* dest);
+    bool WriteSectors(uint32_t lba, uint32_t sector_count, const void* src);
+  }
+#endif
+
+#if DEVICE_BATTERY == 1
+  namespace Battery
+  {
+    bool Charging();
+    float Voltage();
+  }
+#endif
 }
 
 // Matrix OS APIs available for Device Layer
@@ -97,7 +120,7 @@ namespace MatrixOS
     void ErrorHandler(string error);
   }
 
-  namespace KEYPAD
+  namespace KeyPad
   {
     bool NewEvent(KeyEvent* keyevent);
   }

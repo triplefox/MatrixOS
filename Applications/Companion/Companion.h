@@ -7,7 +7,7 @@ Remember to include this header file in the UserApplications.h in the Applicatio
 
 #include "MatrixOS.h"
 #include "Application.h"
-#include "ui/UI.h"
+#include "UI/UI.h"
 
 
 class Companion : public Application {
@@ -24,11 +24,11 @@ class Companion : public Application {
   bool uiOpened = false;
   bool inited = false;
 
-  void Setup() override;
+  void Setup(const vector<string>& args) override;
   void Loop() override;
   void End() override;
 
-  void KeyEventHandler(uint16_t keyID, KeyInfo* keyInfo);
+  void KeyEventHandler(KeyEvent& keyEvent);
   void HIDReportHandler();
   void ActionMenu();
 };

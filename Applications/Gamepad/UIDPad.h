@@ -1,5 +1,5 @@
 #pragma once
-#include "ui/UI.h"
+#include "UI/UI.h"
 
 class UIDPad : public UIComponent {
  public:
@@ -93,11 +93,11 @@ class UIDPad : public UIComponent {
 
   virtual bool KeyEvent(Point xy, KeyInfo* keyInfo) {
     GamepadDPadDirection direction = GAMEPAD_DPAD_CENTERED;
-    if (keyInfo->state == PRESSED)
+    if (keyInfo->State() == PRESSED)
     {
       direction = PointToDirection(xy);
     }
-    else if (keyInfo->state == RELEASED)
+    else if (keyInfo->State() == RELEASED)
     {
       if(xy == DirectionToPoint(lastDirection))
       {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "MatrixOS.h"
-#include "ui/UI.h"
+#include "UI/UI.h"
 #include "Application.h"
 
 #include "esp_efuse.h"
@@ -30,7 +30,7 @@ class FactoryMenu : public Application {
       .visibility = false,
       #endif
   };
-  void Setup() override;
+  void Setup(const vector<string>& args) override;
 
   void LEDTester();
   void KeyPadTester();

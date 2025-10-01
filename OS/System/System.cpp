@@ -1,11 +1,27 @@
 #include "MatrixOS.h"
-#include "../../applications/Setting/Setting.h"
+#include "../../Applications/Setting/Setting.h"
 #include "System.h"
+#include "Applications.h" // This is from device layer
+
+#include "../USB/USB.h"
+#include "../LED/LED.h"
+#include "../KeyPad/KeyPad.h"
+#include "../FileSystem/File.h"
+#include "../MIDI/MIDI.h"
 
 extern std::unordered_map<uint32_t, Application_Info*> applications;
 
 namespace MatrixOS::SYS
 {
+  // Application argument storage
+  static vector<string> next_app_args;
+
+  // Thread Local Storage indices
+  enum TLS_Index {
+    TLS_PERMISSIONS_INDEX = 0,  // Stores TaskPermissions bitmap
+    TLS_MAX_INDEX = 1           // Reserve for future use
+  };
+
   void ApplicationFactory(void* param) {
     MLOGD("Application Factory", "App ID %X", next_app_id);
 
@@ -44,9 +60,20 @@ namespace MatrixOS::SYS
     }
 
     next_app_id = 0;  // Reset active_app_id so when active app exits it will default to shell again.
+
+    // Update task permissions based on app info
+    if (active_app_info != nullptr) {
+      TaskPermissions perms;
+      perms.privileged = active_app_info->is_system;
+      SetTaskPermissions(perms);  // Uses current task (which IS the app task)
+      MLOGD("Application Factory", "Set app permissions: %s", perms.privileged ? "Privileged" : "Not Privileged");
+    }
+
     InitSysModules();
     MatrixOS::LED::Fade();
-    active_app->Start();
+
+    // Pass arguments to application
+    active_app->Start(next_app_args);
   }
 
   void Supervisor(void* param) {
@@ -55,9 +82,24 @@ namespace MatrixOS::SYS
 
     active_app_task = xTaskCreateStatic(ApplicationFactory, "application", APPLICATION_STACK_SIZE, NULL, 1,
                                         application_stack, &application_taskdef);
+
+    bool exited = false;
     while (true)
     {
-      if (eTaskGetState(active_app_task) == eTaskState::eDeleted)
+      // Check if function key is held for more than 3 seconds
+      KeyInfo* fnKeyInfo = MatrixOS::KeyPad::GetKey(FUNCTION_KEY);
+      if (exited == false && (fnKeyInfo->HoldTime() > 3000))
+      {
+          MLOGD("Supervisor", "Function key held for 3s, force exiting app");
+          exited = true;
+          ExitAPP();
+      }
+      else if (fnKeyInfo->Active() == false)
+      {
+        exited = false;
+      }
+      
+      if (active_app_task == NULL || eTaskGetState(active_app_task) == eTaskState::eDeleted)
       {
         active_app_task = xTaskCreateStatic(ApplicationFactory, "application", APPLICATION_STACK_SIZE, NULL, 1,
                                             application_stack, &application_taskdef);
@@ -66,10 +108,10 @@ namespace MatrixOS::SYS
     }
   }
 
-  void Begin() {
+  void Begin(void) {
     Device::DeviceInit();
 
-    USB::Init();
+    MatrixOS::USB::Init();
 
     InitSysModules();
 
@@ -95,33 +137,35 @@ namespace MatrixOS::SYS
     // next_app_id = GenerateAPPID("203 Systems", "Performance Mode");  // Launch Performance mode by default for now
   }
 
-  void InitSysModules()
+  void InitSysModules(void)
   {
-    KEYPAD::Init();
-    LED::Init();
-    MIDI::Init();
-    HID::Init();
+    MatrixOS::KeyPad::Init();
+    MatrixOS::LED::Init();
+    MatrixOS::FileSystem::Init();
+    MatrixOS::USB::SetMode(USB_MODE_NORMAL);
+    MatrixOS::MIDI::Init();
+    MatrixOS::HID::Init();
   }
 
-  uint64_t Millis() {
+  uint64_t Millis(void) {
     return ((((uint64_t)xTaskGetTickCount()) * 1000) / configTICK_RATE_HZ);
   }
 
-  uint64_t Micros() {
+  uint64_t Micros(void) {
     return Device::Micros();
   }
 
-  void DelayMs(uint32_t intervalMs) {
-    vTaskDelay(pdMS_TO_TICKS(intervalMs));
+  void DelayMs(uint32_t ms) {
+    vTaskDelay(pdMS_TO_TICKS(ms));
   }
 
-  void Reboot() {
+  void Reboot(void) {
     Device::Reboot();
   }
 
   void Bootloader() {
-    LED::Fill(0);
-    LED::Update();
+    MatrixOS::LED::Fill(0);
+    MatrixOS::LED::Update();
     DelayMs(20);  // Wait for led data to be updated first.
     Device::Bootloader();
   }
@@ -131,7 +175,7 @@ namespace MatrixOS::SYS
     setting.Start();
   }
 
-  void Rotate(EDirection new_rotation, bool absolute) {
+  void Rotate(Direction new_rotation, bool absolute) {
     if (new_rotation == 0 || new_rotation == 90 || new_rotation == 180 || new_rotation == 270)
     {
       if (new_rotation == 0 && !absolute)
@@ -139,29 +183,32 @@ namespace MatrixOS::SYS
       // LED::RotateCanvas(new_rotation); //TODO Does not work if absolute is true
       for (uint8_t ledLayer = 0; ledLayer <= LED::CurrentLayer(); ledLayer++)
       { LED::Fill(0, ledLayer); }
-      UserVar::rotation = (EDirection)((UserVar::rotation * !absolute + new_rotation) % 360);
+      UserVar::rotation = (Direction)((UserVar::rotation * !absolute + new_rotation) % 360);
     }
   }
 
   uint32_t GenerateAPPID(string author, string app_name) {
     // MLOG("System", "APP ID: %u", app_id);
-    return Hash(author + "-" + app_name);
-    ;
+    return StringHash(author + "-" + app_name);
   }
 
-  void ExecuteAPP(uint32_t app_id) {
-    // MLOG("System", "Launching APP ID\t%u", app_id);
+  void ExecuteAPP(uint32_t app_id, const vector<string>& args) {
+    next_app_args = args;
     next_app_id = app_id;
 
-    if (active_app_task != NULL)
-    {
+    if (active_app_task != NULL) {
       ExitAPP();
     }
   }
 
-  void ExecuteAPP(string author, string app_name) {
+  void ExecuteAPP(string author, string app_name, const vector<string>& args) {
+    next_app_args = args;
     MLOGD("System", "Launching APP\t%s - %s", author.c_str(), app_name.c_str());
-    ExecuteAPP(GenerateAPPID(author, app_name));
+    next_app_id = GenerateAPPID(author, app_name);
+
+    if (active_app_task != NULL) {
+      ExitAPP();
+    }
   }
 
   void ExitAPP() {
@@ -174,14 +221,27 @@ namespace MatrixOS::SYS
       MatrixOS::SYS::DelayMs(crossfade_duration);
     }
 
-    active_app_info->destructor(active_app);
+    if (xTaskGetCurrentTaskHandle() != active_app_task) {
+      vTaskSuspend(active_app_task);
+    }
+    
+    // Safeguard against nullptr before calling End()
+    if (active_app != nullptr) {
+      active_app->End();
+    }
+    
+    // Safeguard destructor call
+    if (active_app_info != nullptr && active_app_info->destructor != nullptr && active_app != nullptr) {
+      active_app_info->destructor(active_app);
+    }
+
     if (active_app_task != NULL)
     {
-      UI::CleanUpUIs(); // TODO move this to application implementation vis stuffs like UImanager etc. This way UI framework is decoupled from the OS or application frameworks
-      vTaskDelete(active_app_task);
-      free(active_app);
+      UI::ExitAllUIs();
       active_app = NULL;
+      vTaskDelete(active_app_task);
     }
+    active_app_task = NULL;
   }
 
   void ErrorHandler(string error) {
@@ -193,18 +253,18 @@ namespace MatrixOS::SYS
     MLOGE("System", "Matrix OS Error: %s", error.c_str());
 
     // Show Blue Screen
-    LED::Fill(0x00adef);
+    MatrixOS::LED::Fill(0x00adef);
     if (Device::x_size >= 5 && Device::y_size >= 5)
     {
-      LED::SetColor(Point(1, 1), 0xFFFFFF);
-      LED::SetColor(Point(1, 3), 0xFFFFFF);
+      MatrixOS::LED::SetColor(Point(1, 1), 0xFFFFFF);
+      MatrixOS::LED::SetColor(Point(1, 3), 0xFFFFFF);
 
-      LED::SetColor(Point(3, 1), 0xFFFFFF);
-      LED::SetColor(Point(3, 2), 0xFFFFFF);
-      LED::SetColor(Point(3, 3), 0xFFFFFF);
+      MatrixOS::LED::SetColor(Point(3, 1), 0xFFFFFF);
+      MatrixOS::LED::SetColor(Point(3, 2), 0xFFFFFF);
+      MatrixOS::LED::SetColor(Point(3, 3), 0xFFFFFF);
     }
 
-    LED::Update();
+    MatrixOS::LED::Update();
 
     Device::ErrorHandler();  // Low level indicator in case LED and USB failed
   }
@@ -241,5 +301,31 @@ namespace MatrixOS::SYS
     // }
 
     (void)prev_ver;
+  }
+
+  TaskPermissions GetTaskPermissions(TaskHandle_t task) {
+    // If null, get current task
+    if (task == nullptr) {
+      task = xTaskGetCurrentTaskHandle();
+    }
+
+    // Get permissions from Thread Local Storage
+    uint32_t raw = (uintptr_t)pvTaskGetThreadLocalStoragePointer(task, TLS_PERMISSIONS_INDEX);
+    return TaskPermissions(raw);
+  }
+
+  bool IsTaskPrivileged(TaskHandle_t task) {
+    TaskPermissions perms = GetTaskPermissions(task);
+    return perms.privileged;
+  }
+
+  void SetTaskPermissions(TaskPermissions permissions, TaskHandle_t task) {
+    // If null, get current task
+    if (task == nullptr) {
+      task = xTaskGetCurrentTaskHandle();
+    }
+
+    // Set permissions in Thread Local Storage
+    vTaskSetThreadLocalStoragePointer(task, TLS_PERMISSIONS_INDEX, (void*)(uintptr_t)permissions.raw);
   }
 }

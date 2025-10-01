@@ -22,7 +22,7 @@ include($ENV{IDF_PATH}/tools/cmake/idf.cmake)
 idf_build_process("${IDF_TARGET}"
     SDKCONFIG ${SDKCONFIG_PATH}
     SDKCONFIG_DEFAULTS ${SDKCONFIG_DEFAULTS_PATH}
-    COMPONENTS esptool_py freertos usb efuse esp_common esp_system esp_driver_gpio esp_driver_uart nvs_flash esp_wifi esp_netif esp_adc ulp bt console
+    COMPONENTS esptool_py freertos usb efuse esp_common esp_system esp_driver_gpio esp_driver_uart nvs_flash esp_wifi esp_netif esp_adc ulp bt console sdmmc driver
 )
 
 # Check ESP-IDF version
@@ -66,10 +66,11 @@ add_library(MatrixOSDevice
     ${DEVICE_HEADERS}
 )
 
-target_include_directories(MatrixOSDevice PUBLIC 
+target_include_directories(MatrixOSDevice PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/Variants/Mystrix
     ${CMAKE_SOURCE_DIR}/Platform/ESP32SX
+    ${CMAKE_SOURCE_DIR}/Library/FatFs/source
 )
 
 string(TOUPPER "${IDF_TARGET}" TINYUSB_MCU_OPT)
@@ -80,14 +81,14 @@ target_compile_options(MatrixOSDevice PUBLIC
 
 # Add Platform ESP32SX libraries
 add_subdirectory(${CMAKE_SOURCE_DIR}/Platform/ESP32SX/WS2812 ${CMAKE_BINARY_DIR}/Platform/ESP32SX/WS2812)
-add_subdirectory(${CMAKE_SOURCE_DIR}/Platform/ESP32SX/blemidi ${CMAKE_BINARY_DIR}/Platform/ESP32SX/blemidi)
+add_subdirectory(${CMAKE_SOURCE_DIR}/Platform/ESP32SX/BLEMidi ${CMAKE_BINARY_DIR}/Platform/ESP32SX/BLEMidi)
 
-target_link_libraries(MatrixOSDevice PUBLIC 
+target_link_libraries(MatrixOSDevice PUBLIC
     DeviceInterface
     MatrixOSFramework
     WS2812
     BLEMidi
-    idf::freertos 
+    idf::freertos
     idf::esp_common
     idf::esp_system
     idf::usb
@@ -99,6 +100,8 @@ target_link_libraries(MatrixOSDevice PUBLIC
     idf::esp_netif
     idf::esp_adc
     idf::ulp
+    idf::sdmmc
+    idf::driver
 )
 
 enable_language(ASM)
@@ -117,6 +120,14 @@ target_link_libraries(${elf_file}
 )
 
 idf_build_executable(${elf_file})
+
+# Copy ELF file to standard location for monitor tools
+add_custom_command(TARGET ${elf_file} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_BINARY_DIR}/${elf_file}
+        ${CMAKE_BINARY_DIR}/${elf_file}
+    COMMENT "Copying ELF file to build root for monitor tools"
+)
 
 # Workaround to enable idf.py commands
 set(PROJECT_EXECUTABLE ${elf_file})

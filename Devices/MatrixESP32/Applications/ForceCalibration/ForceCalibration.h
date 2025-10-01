@@ -1,7 +1,7 @@
 #pragma once
 
 #include "MatrixOS.h"
-#include "ui/UI.h"
+#include "UI/UI.h"
 #include "Application.h"
 
 namespace Device::KeyPad::FSR
@@ -38,7 +38,7 @@ class ForceCalibration : public Application {
       .visibility = false,
       // #endif
   };
-  void Setup() override;  
+  void Setup(const vector<string>& args) override;  
 
   void LowCalibration();
   void HighCalibration();

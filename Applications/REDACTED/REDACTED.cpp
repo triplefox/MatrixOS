@@ -1,6 +1,6 @@
 #include "REDACTED.h"
 
-void REDACTED::Setup() {
+void REDACTED::Setup(const vector<string>& args) {
   // x_offset = (MatrixOS::SYS::GetVariable(MatrixOS::SYS::ESysVar::MatrixSizeX) - 8) / 2; //TODO, wait for new API to
   // be implemented y_offset = (MatrixOS::SYS::GetVariable(MatrixOS::SYS::ESysVar::MatrixSizeY) - 8) / 2;
 
@@ -61,7 +61,7 @@ void REDACTED::Task2() {
       for (uint8_t i = 0; i <= (data2[offset2] >> 5); i++)
       {
         uint8_t v = 80 * (data2[offset2 + bufferOffset] >> 7);
-        MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, v > 0 ? NoteOn : NoteOff, 0, data2[offset2 + bufferOffset] & 0x7F, v));
+        MatrixOS::MIDI::Send(MidiPacket( v > 0 ? EMidiStatus::NoteOn : EMidiStatus::NoteOff, 0, data2[offset2 + bufferOffset] & 0x7F, v));
 
         bufferOffset++;
       }
@@ -81,14 +81,14 @@ void REDACTED::Loop() {
     Exit();
 
   struct KeyEvent keyEvent;
-  while (MatrixOS::KEYPAD::Get(&keyEvent))
+  while (MatrixOS::KeyPad::Get(&keyEvent))
   { KeyEventHandler(&keyEvent); }
 }
 
 void REDACTED::End() {
   // for(uint8_t n = 0; n < 127; n ++)
   // {
-  //   MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, NoteOff, n, 0));
+  //   MatrixOS::MIDI::Send(MidiPacket::(NoteOff, n, 0));
   // }
   MatrixOS::LED::Fill(0);
   MatrixOS::LED::Update();

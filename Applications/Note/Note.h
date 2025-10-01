@@ -3,7 +3,7 @@
 #include "MatrixOS.h"
 #include "NotePad.h"
 #include "Scales.h"
-#include "ui/UI.h"
+#include "UI/UI.h"
 #include "Application.h"
 
 #define NOTE_APP_VERSION 2
@@ -22,13 +22,14 @@ class Note : public Application {
   
   enum ESpiltView : uint8_t { SINGLE_VIEW, VERT_SPLIT, HORIZ_SPLIT};
   // Saved Variables
-  CreateSavedVar("Note", nvsVersion, uint32_t, NOTE_APP_VERSION);  // In case NoteLayoutConfig got changed
+  CreateSavedVar("Note", nvsVersion, uint32_t, NOTE_APP_VERSION);  // In case NotePadConfig got changed
   CreateSavedVar("Note", activeConfig, uint8_t, 0);
   CreateSavedVar("Note", splitView, ESpiltView, SINGLE_VIEW);
+  CreateSavedVar("Note", controlBar, bool, false);
 
-  void Setup() override;
+  void Setup(const vector<string>& args) override;
 
-  void KeyEventHandler(uint16_t keyID, KeyInfo* keyInfo);
+  void KeyEventHandler(KeyEvent& keyEvent);
 
   void GridKeyEvent(Point xy, KeyInfo* KeyInfo);
   void IDKeyEvent(uint16_t keyID, KeyInfo* KeyInfo);
@@ -39,10 +40,22 @@ class Note : public Application {
   void LayoutSelector();
   void ChannelSelector();
   void ColorSelector();
+  void ArpConfigMenu();
 
-  NoteLayoutConfig notePadConfigs[2];
+  NotePadConfig notePadConfigs[2];
+  NotePad *activeNotePads[2] = {nullptr, nullptr};
 
-  uint16_t scales[32] = {NATURAL_MINOR,
+  Color colorPresets[6][2] =
+  {
+    {0x0040FF, 0x00FFFF},
+    {0x8000FF, 0xFF00FF},
+    {0xFF4000, 0xFFFF00},
+    {0xFF0080, 0xFF60C0},
+    {0x00FF00, 0x80FF00},
+    {0x40FFFF, 0xFFFFFF}
+  };
+
+  static inline uint16_t scales[32] = {NATURAL_MINOR,
                          MAJOR,
                          DORIAN,
                          PHRYGIAN,
@@ -61,7 +74,7 @@ class Note : public Application {
                          LYDIAN,
                          LOCRIAN,
                          MAJOR_PENTATONIC,
-                         PHRYGIAN_DOMINATE,
+                         PHRYGIAN_DOMINANT,
                          HALF_WHOLE_DIMINISHED,
                          MIXOLYDIAN_BEBOP,
                          SUPER_LOCRIAN,
@@ -75,7 +88,7 @@ class Note : public Application {
                          KUMOI,
                          BEBOP_MAJOR};
 
-  string scale_names[32] = {"Natural Minor",
+  static inline const string scale_names[32] = {"Natural Minor",
                             "Major",
                             "Dorian",
                             "Phrygian",
@@ -94,7 +107,7 @@ class Note : public Application {
                             "Lydian",
                             "Locrian",
                             "Major Pentatonic",
-                            "Phrygian scale",
+                            "Phrygian Dominant",
                             "Half-Whole Diminished",
                             "Mixolydian BeBop",
                             "Super Locrian",

@@ -1,5 +1,5 @@
-#include "Family.h"
-#include "blemidi/blemidi.h"
+#include "Device.h"
+#include "BLEMidi/BLEMidi.h"
 
 #include <queue>
 using std::queue;
@@ -25,7 +25,7 @@ namespace Device
       // remaining_message[1]);
       if (len == 2)
       {
-        midiPort->Send(MidiPacket(midiPort->id, (EMidiStatus)(midi_status & 0xF0), midi_status, remaining_message[0],
+        midiPort->Send(MidiPacket((EMidiStatus)(midi_status & 0xF0), midi_status, remaining_message[0],
                                   remaining_message[1]));
       }
     }

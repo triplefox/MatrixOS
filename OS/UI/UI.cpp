@@ -2,10 +2,10 @@
 
 std::vector<UI*> UI::uiList;
 
-UI::UI(string name, Color color, bool newLedLayer) {
+UI::UI(string name, Color color, bool newLEDLayer) {
   this->name = name;
   this->nameColor = color;
-  this->newLedLayer = newLedLayer;
+  this->newLEDLayer = newLEDLayer;
 
   UI::RegisterUI(this);
 }
@@ -14,9 +14,21 @@ UI::~UI() {
   UI::UnregisterUI(this);
 }
 
+void UI::SetName(string name) {
+  this->name = name;
+}
+
+void UI::SetColor(Color color) {
+  this->nameColor = color;
+}
+
+void UI::ShouldCreatenewLEDLayer(bool create) {
+  this->newLEDLayer = create;
+}
+
 void UI::Start() {
   status = 0;
-  if (newLedLayer)
+  if (newLEDLayer)
   {
     prev_layer = MatrixOS::LED::CurrentLayer();
     current_layer = MatrixOS::LED::CreateLayer();
@@ -28,9 +40,9 @@ void UI::Start() {
     MatrixOS::LED::Fade();
   }
   
-  MatrixOS::KEYPAD::Clear();
+  MatrixOS::KeyPad::Clear();
   Setup();
-  while (status != -1)
+  while (status >= 0)
   {
     LoopTask();
     Loop();
@@ -41,8 +53,10 @@ void UI::Start() {
 }
 
 void UI::Exit() {
-  MLOGD("UI", "UI Exit signaled");
-  status = -1;
+  if(status != INT8_MIN)
+  {
+    status = -1;
+  }
 }
 
 void UI::LoopTask() {
@@ -69,7 +83,7 @@ void UI::RenderUI() {
 
 void UI::GetKey() {
   struct KeyEvent keyEvent;
-  while (MatrixOS::KEYPAD::Get(&keyEvent))
+  while (MatrixOS::KeyPad::Get(&keyEvent))
   {
     if (!CustomKeyEvent(&keyEvent)) //Run Custom Key Event first. Check if UI event is blocked
     {
@@ -79,7 +93,7 @@ void UI::GetKey() {
 }
 
 void UI::UIKeyEvent(KeyEvent* keyEvent) {
-  // MLOGD("UI Key Event", "%d - %d", keyID, keyInfo->state);
+  // MLOGD("UI Key Event", "%d - %d", keyID, keyInfo->State();
   if (keyEvent->id == FUNCTION_KEY)
   {
     if (!disableExit && keyEvent->info.state == RELEASED)
@@ -89,7 +103,7 @@ void UI::UIKeyEvent(KeyEvent* keyEvent) {
       return;
     }
   }
-  Point xy = MatrixOS::KEYPAD::ID2XY(keyEvent->id);
+  Point xy = MatrixOS::KeyPad::ID2XY(keyEvent->id);
   if (xy)
   {
     bool hasAction = false;
@@ -150,9 +164,10 @@ void UI::UIEnd() {
   End();
   MLOGD("UI", "UI %s Exited", name.c_str());
 
-  MatrixOS::KEYPAD::Clear();
+  MatrixOS::KeyPad::Clear();
+  uiComponents.clear();
 
-  if (newLedLayer)
+  if (newLEDLayer)
   { 
     MatrixOS::LED::DestroyLayer(); }
   else
@@ -189,10 +204,42 @@ void UI::UnregisterUI(UI* ui) {
   }
 }
 
-void UI::CleanUpUIs() {
-  for (auto it = UI::uiList.rbegin(); it != UI::uiList.rend(); ++it)
+void UI::ExitAllUIs() {
+  auto uiListCopy = UI::uiList;
+  
+  for (auto it = uiListCopy.rbegin(); it != uiListCopy.rend(); ++it)
   {
-      (*it)->ClearUIComponents();
+    if (*it != nullptr) {
+      (*it)->status = INT8_MIN;
+      (*it)->uiComponents.clear();
+    }
   }
+  MatrixOS::KeyPad::Clear();
   UI::uiList.clear();
+}
+
+// Virtual function implementations
+void UI::Setup() {
+  if (setup_func)
+    (*setup_func)();
+}
+
+void UI::Loop() {
+  if (loop_func)
+    (*loop_func)();
+}
+
+void UI::PreRender() {
+  if (pre_render_func)
+    (*pre_render_func)();
+}
+
+void UI::PostRender() {
+  if (post_render_func)
+    (*post_render_func)();
+}
+
+void UI::End() {
+  if (end_func)
+    (*end_func)();
 }

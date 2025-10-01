@@ -19,9 +19,9 @@ class Gamepad : public Application {
       .visibility = true,
   };
 
-  void Setup() override;
+  void Setup(const vector<string>& args) override;
   void Loop() override;
-  void KeyEventHandler(uint16_t KeyID, KeyInfo* keyInfo);
+  void KeyEventHandler(KeyEvent& keyEvent);
 
   void ActionMenu();
 };

@@ -2,7 +2,7 @@
 #pragma once
 
 #include "MatrixOS.h"
-#include "ui/UI.h"
+#include "UI/UI.h"
 
 class UnderglowLight : public UIComponent {
  public:
@@ -11,6 +11,7 @@ class UnderglowLight : public UIComponent {
 
   virtual Color GetColor() { return color; }
   virtual Dimension GetSize() { return dimension; }
+  void SetColor(Color newColor) { this->color = newColor; }
 
   bool IsUnderglow(Point pos)
   {

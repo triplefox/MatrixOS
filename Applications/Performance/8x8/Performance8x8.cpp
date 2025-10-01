@@ -1,6 +1,6 @@
 #include "Performance8x8.h"
 
-void Performance::Setup() {
+void Performance::Setup(const vector<string>& args) {
   // Load variable
   canvasLedLayer = MatrixOS::LED::CurrentLayer();
   currentKeymap = 0;
@@ -30,9 +30,9 @@ void Performance::Loop() {
   }
 
   struct KeyEvent keyEvent;
-  while (MatrixOS::KEYPAD::Get(&keyEvent))
+  while (MatrixOS::KeyPad::Get(&keyEvent))
   {
-    KeyEventHandler(keyEvent.id, &keyEvent.info);
+    KeyEventHandler(keyEvent);
   }
 
   struct MidiPacket midiPacket;
@@ -42,17 +42,17 @@ void Performance::Loop() {
   }
 }
 
-void Performance::MidiEventHandler(MidiPacket midiPacket) {
+void Performance::MidiEventHandler(MidiPacket& midiPacket) {
   // MLOGD("Performance", "Midi Received from %d - %d %d %d %d", midiPacket.port, midiPacket.status, midiPacket.data[0],
   // midiPacket.data[1], midiPacket.data[2]);
   switch (midiPacket.status)
   {
     case NoteOn:
     case ControlChange:
-      NoteHandler(midiPacket.channel(), midiPacket.note(), midiPacket.velocity());
+      NoteHandler(midiPacket.Channel(), midiPacket.Note(), midiPacket.Velocity());
       break;
     case NoteOff:
-      NoteHandler(midiPacket.channel(), midiPacket.note(), 0);
+      NoteHandler(midiPacket.Channel(), midiPacket.Note(), 0);
       break;
     case SysExData:
     case SysExEnd:
@@ -394,15 +394,15 @@ void Performance::SysExHandler(MidiPacket midiPacket) {
   sysExBuffer.clear();
 }
 
-void Performance::KeyEventHandler(uint16_t KeyID, KeyInfo* keyInfo) {
-  Point xy = MatrixOS::KEYPAD::ID2XY(KeyID);
+void Performance::KeyEventHandler(KeyEvent& keyEvent) {
+  Point xy = MatrixOS::KeyPad::ID2XY(keyEvent.ID());
   if (xy)  // IF XY is valid, means it's on the main grid
   {
-    GridKeyEvent(xy, keyInfo);
+    GridKeyEvent(xy, &keyEvent.info);
   }
   else  // XY Not valid,
   {
-    IDKeyEvent(KeyID, keyInfo);
+    IDKeyEvent(keyEvent.ID(), &keyEvent.info);
   }
 }
 
@@ -447,8 +447,8 @@ void Performance::GridKeyEvent(Point xy, KeyInfo* keyInfo) {
           point = Point(-1, i - 24);
         }
 
-        KeyInfo* touchKey = MatrixOS::KEYPAD::GetKey(point);
-        if(touchKey != nullptr && touchKey->active())
+        KeyInfo* touchKey = MatrixOS::KeyPad::GetKey(point);
+        if(touchKey != nullptr && touchKey->Active())
         {
           combo_key = true;
           break;
@@ -457,13 +457,13 @@ void Performance::GridKeyEvent(Point xy, KeyInfo* keyInfo) {
     }
 
     // If we are in combo key state and key is pressed, set the combo key state
-    if(combo_key && keyInfo->state == PRESSED)
+    if(combo_key && keyInfo->State() == PRESSED)
     {
         was_combo_key |= 1 << combo_key_id;
     }
 
     // If we was in combo key state and key is released, clear the combo key state
-    if(keyInfo->state == RELEASED)
+    if(keyInfo->State() == RELEASED)
     {
       was_combo_key &= ~(1 << combo_key_id);
     }
@@ -476,40 +476,42 @@ void Performance::GridKeyEvent(Point xy, KeyInfo* keyInfo) {
     return;
   }
 
-  if (!velocitySensitive)
+  Fract16 force = keyInfo->Force();
+
+  if (!forceSensitive)
   {
-    if (keyInfo->state == AFTERTOUCH)
+    if (keyInfo->State() == AFTERTOUCH)
     {
       return;
     };
-    if (keyInfo->velocity > 0)
+    if (force > 0)
     {
-      keyInfo->velocity = FRACT16_MAX;
+      force = FRACT16_MAX;
     };
   }
 
-  if (keyInfo->state == PRESSED)
+  if (keyInfo->State() == PRESSED)
   {
-    MatrixOS::MIDI::Send(MidiPacket(MIDI_PORT_ALL, NoteOn, 0, note, keyInfo->velocity.to7bits()));
+    MatrixOS::MIDI::Send(MidiPacket::NoteOn(0, note, force.to7bits()), MIDI_PORT_ALL);
   }
-  else if (keyInfo->state == AFTERTOUCH)
+  else if (keyInfo->State() == AFTERTOUCH)
   {
-    MatrixOS::MIDI::Send(MidiPacket(MIDI_PORT_ALL, AfterTouch, 0, note, keyInfo->velocity.to7bits()));
+    MatrixOS::MIDI::Send(MidiPacket::AfterTouch(0, note, force.to7bits()), MIDI_PORT_ALL);
   }
-  else if (keyInfo->state == RELEASED)
+  else if (keyInfo->State() == RELEASED)
   {
-    MatrixOS::MIDI::Send(MidiPacket(MIDI_PORT_ALL, NoteOn, 0, note, 0));
+    MatrixOS::MIDI::Send(MidiPacket::NoteOn(0, note, 0), MIDI_PORT_ALL);
   }
 }
 
 void Performance::IDKeyEvent(uint16_t keyID, KeyInfo* keyInfo) {
-  if (keyID == 0 && keyInfo->state == (menuLock ? HOLD : PRESSED))
+  if (keyID == 0 && keyInfo->State() == (menuLock ? HOLD : PRESSED))
   {
-    MatrixOS::MIDI::Send(MidiPacket(MIDI_PORT_ALL, ControlChange, 0, 121, 127)); 
-    MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, ControlChange, 0, 123, 0)); // All notes off
+    MatrixOS::MIDI::Send(MidiPacket::ControlChange(0, 121, 127), MIDI_PORT_ALL); 
+    MatrixOS::MIDI::Send(MidiPacket::ControlChange(0, 123, 0)); // All notes off
     ActionMenu();
-    MatrixOS::MIDI::Send(MidiPacket(MIDI_PORT_ALL, ControlChange, 0, 121, 0));  // For Apollo Clearing
-    MatrixOS::MIDI::Send(MidiPacket(EMidiPortID::MIDI_PORT_EACH_CLASS, ControlChange, 0, 123, 0)); // All notes off
+    MatrixOS::MIDI::Send(MidiPacket::ControlChange(0, 121, 0), MIDI_PORT_ALL);  // For Apollo Clearing
+    MatrixOS::MIDI::Send(MidiPacket::ControlChange(0, 123, 0)); // All notes off
   }
 }
 
@@ -558,9 +560,9 @@ void Performance::PaletteViewer(uint8_t custom_palette_id) {
       }
       
       struct KeyEvent keyEvent;
-      if (MatrixOS::KEYPAD::Get(&keyEvent))
+      if (MatrixOS::KeyPad::Get(&keyEvent))
       {
-        Point xy = MatrixOS::KEYPAD::ID2XY(keyEvent.id);
+        Point xy = MatrixOS::KeyPad::ID2XY(keyEvent.ID());
         if(xy && xy.x >= 0 && xy.x < 8 && xy.y >= 0 && xy.y < 8)
         {
           uint8_t id = xy.y * 8 + xy.x + i * 64;
@@ -586,7 +588,7 @@ void Performance::PaletteViewer(uint8_t custom_palette_id) {
             break;
           }
         }
-        if (keyEvent.id == FUNCTION_KEY)
+        if (keyEvent.ID() == FUNCTION_KEY)
         {
           if (keyEvent.info.state == HOLD)
           { 
@@ -627,15 +629,15 @@ void Performance::ActionMenu() {
   actionMenu.AddUIComponent(clearCanvasBtn, Point(0, 5));
 
   // Note Pad
-  UINotePad notePad(Dimension(8, 2), keymap_color[currentKeymap], keymap_channel[currentKeymap], (uint8_t*)note_pad_map[currentKeymap], velocitySensitive);
+  UINotePad notePad(Dimension(8, 2), keymap_color[currentKeymap], keymap_channel[currentKeymap], (uint8_t*)note_pad_map[currentKeymap], forceSensitive);
   actionMenu.AddUIComponent(notePad, Point(0, 6));
 
   // Other Controls
   UIToggle velocityToggle;
   velocityToggle.SetName("Velocity Sensitive");
   velocityToggle.SetColor(Color(0x00FFFF));
-  velocityToggle.SetValuePointer(&velocitySensitive);
-  velocityToggle.OnPress([&]() -> void {velocitySensitive.Save();});
+  velocityToggle.SetValuePointer(&forceSensitive);
+  velocityToggle.OnPress([&]() -> void {forceSensitive.Save();});
   velocityToggle.SetEnabled(Device::KeyPad::velocity_sensitivity);
   actionMenu.AddUIComponent(velocityToggle, Point(7, 0));
 

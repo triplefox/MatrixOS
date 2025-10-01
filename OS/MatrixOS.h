@@ -1,50 +1,36 @@
 #pragma once
 
-#include "Device.h"
-#include "Family.h"
 #include "MatrixOSConfig.h"
+#include "Device.h"
 #include "FreeRTOS.h"
 #include "Framework.h"
 #include "queue.h"
 #include "semphr.h"
-#include "system/Parameters.h"
-#include "system/UserVariables.h"
+#include "System/Parameters.h"
+#include "System/UserVariables.h"
 #include "task.h"
 #include "timers.h"
 
 #include "HID/HIDSpecs.h"
 
-#define noexpose  // Custom keyword to remove function to be generated as exposed API
-
-class Application;
-class Application_Info;
-
 // Matrix OS Modules and their API for Application layer or system layer
 namespace MatrixOS
 {
-  inline uint32_t api_version = 0;
-
   namespace SYS
   {
-    inline bool inited = false;
-    extern Application* active_app;
-    extern uint32_t active_app_id;
-    void Begin(void);
-    void InitSysModules(void);
-
     uint64_t Millis(void);
     uint64_t Micros(void);
-    void DelayMs(uint32_t intervalMs);
+    void DelayMs(uint32_t ms);
 
     void Reboot(void);
     void Bootloader(void);
 
     void OpenSetting(void);
 
-    void Rotate(EDirection rotation, bool absolute = false);
+    void Rotate(Direction rotation, bool absolute = false);
 
-    void ExecuteAPP(string author, string app_name);
-    void ExecuteAPP(uint32_t app_id);
+    void ExecuteAPP(uint32_t app_id, const vector<string>& args = {});
+    void ExecuteAPP(string author, string app_name, const vector<string>& args = {});
     void ExitAPP();
 
     void ErrorHandler(string error = string());
@@ -52,16 +38,14 @@ namespace MatrixOS
 
   namespace LED
   {
-    void Init(void);
-
     void NextBrightness();
     void SetBrightness(uint8_t brightness);
-    void SetBrightnessMultiplier(string partition_name, float multiplier);
+    bool SetBrightnessMultiplier(string partition_name, float multiplier);
 
     void SetColor(Point xy, Color color, uint8_t layer = 255);
     void SetColor(uint16_t ID, Color color, uint8_t layer = 255);
     void Fill(Color color, uint8_t layer = 255);
-    void FillPartition(string partition, Color color, uint8_t layer = 255);
+    bool FillPartition(string partition, Color color, uint8_t layer = 255);
     void Update(uint8_t layer = 255);
 
     int8_t CurrentLayer();
@@ -72,14 +56,12 @@ namespace MatrixOS
     void Fade(uint16_t crossfade = crossfade_duration, Color* source_buffer = nullptr);
 
     void PauseUpdate(bool pause = true);
-    uint32_t GetLedCount(void);
+    uint32_t GetLEDCount(void);
   }
 
-  namespace KEYPAD
+  namespace KeyPad
   {
-    noexpose void Init(void);
     uint16_t Scan();                    // Return # of changed key
-    bool NewEvent(KeyEvent* keyevent);  // Adding keyevent, return true when queue is full
     bool Get(KeyEvent* keyEvent_dest, uint32_t timeout_ms = 0);
     KeyInfo* GetKey(Point keyXY);
     KeyInfo* GetKey(uint16_t keyID);
@@ -94,9 +76,6 @@ namespace MatrixOS
 
   namespace USB
   {
-    noexpose void Init();
-
-    bool Inited(void);     // If USB Stack is initialized, not sure what it will be needed but I added it anyways
     bool Connected(void);  // If USB is connected
 
     namespace CDC
@@ -119,16 +98,9 @@ namespace MatrixOS
 
   namespace MIDI
   {
-    noexpose void Init(void);
-
     bool Get(MidiPacket* midiPacketDest, uint16_t timeout_ms = 0);
-    bool Send(MidiPacket midiPacket, uint16_t timeout_ms = 0);
+    bool Send(MidiPacket midiPacket, uint16_t targetPort = MIDI_PORT_EACH_CLASS, uint16_t timeout_ms = 0);
     bool SendSysEx(uint16_t port, uint16_t length, uint8_t* data, bool includeMeta = true);  // If include meta, it will send the correct header and ending;
-
-    // Those APIs are only for MidiPort to use
-    noexpose bool OpenMidiPort(uint16_t port_id, MidiPort* midiPort);
-    noexpose void CloseMidiPort(uint16_t port_id);
-    noexpose bool Receive(MidiPacket midipacket_prt, uint32_t timeout_ms = 0);
   }
 
   namespace HID
@@ -138,34 +110,34 @@ namespace MatrixOS
     
     namespace Keyboard
     {
-      bool Write(KeyboardKeycode keycode);
+      bool Tap(KeyboardKeycode keycode, uint16_t length_ms = 100);
       bool Press(KeyboardKeycode keycode);
       bool Release(KeyboardKeycode keycode);
-      bool Remove(KeyboardKeycode keycode);
       void ReleaseAll(void);
     }
 
-    namespace Mouse
-    {
-      void Click(MouseKeycode keycode = MOUSE_LEFT);
-      void press(MouseKeycode keycode = MOUSE_LEFT);   // press LEFT by default
-      void release(MouseKeycode keycode = MOUSE_LEFT); // release LEFT by default
-      void ReleaseAll(void);
-      void Move(signed char x, signed char y, signed char wheel = 0);
-    }
+    // namespace Mouse
+    // {
+    //   void Click(MouseKeycode keycode = MOUSE_LEFT);
+    //   void Press(MouseKeycode keycode = MOUSE_LEFT);   // press LEFT by default
+    //   void Release(MouseKeycode keycode = MOUSE_LEFT); // release LEFT by default
+    //   void ReleaseAll(void);
+    //   void Move(signed char x, signed char y, signed char wheel = 0);
+    // }
 
-    namespace Touch // Absolute Mouse
-    {
-      void Click(MouseKeycode keycode = MOUSE_LEFT);
-      void Press(MouseKeycode keycode = MOUSE_LEFT);   // press LEFT by default
-      void Release(MouseKeycode keycode = MOUSE_LEFT); // release LEFT by default
-      void ReleaseAll(void);
-      void MoveTo(signed char x, signed char y, signed char wheel = 0);
-      void Move(signed char x, signed char y, signed char wheel = 0);
-    }
+    // namespace Touch // Absolute Mouse
+    // {
+    //   void Click(MouseKeycode keycode = MOUSE_LEFT);
+    //   void Press(MouseKeycode keycode = MOUSE_LEFT);   // press LEFT by default
+    //   void Release(MouseKeycode keycode = MOUSE_LEFT); // release LEFT by default
+    //   void ReleaseAll(void);
+    //   void MoveTo(signed char x, signed char y, signed char wheel = 0);
+    //   void Move(signed char x, signed char y, signed char wheel = 0);
+    // }
 
     namespace Gamepad
     {
+      void Tap(uint8_t button_id, uint16_t length_ms = 100);
       void Press(uint8_t button_id);
       void Release(uint8_t button_id);
       void ReleaseAll(void);
@@ -183,25 +155,24 @@ namespace MatrixOS
       void DPad(GamepadDPadDirection direction);
     }
 
-    namespace Consumer
-    {
-      void Write(ConsumerKeycode keycode);
-      void Press(ConsumerKeycode keycode);
-      void Release(ConsumerKeycode keycode);
-      void ReleaseAll(void);
-    }
+    // namespace Consumer
+    // {
+    //   void Write(ConsumerKeycode keycode);
+    //   void Press(ConsumerKeycode keycode);
+    //   void Release(ConsumerKeycode keycode);
+    //   void ReleaseAll(void);
+    // }
 
-    namespace System
-    {
-      void Write(SystemKeycode keycode);
-      void Press(SystemKeycode keycode);
-      void Release(void);
-      void ReleaseAll(void);
-    }
+    // namespace System
+    // {
+    //   void Write(SystemKeycode keycode);
+    //   void Press(SystemKeycode keycode);
+    //   void Release(void);
+    //   void ReleaseAll(void);
+    // }
 
     namespace RawHID
     {
-      void Init();
       size_t Get(uint8_t** report, uint32_t timeout_ms = 0);
       bool Send(const vector<uint8_t> &report);
     }
@@ -293,6 +264,12 @@ namespace MatrixOS
   //     void Write(uint8_t);
   //   }
 }
+
+#if DEVICE_STORAGE == 1
+    // Complete File API with FileSystem operations
+    #include "FileSystem/File.h"
+    #include "FileSystem/FileSystem.h"
+#endif
 
 
 // ui/UIUtilities.h have more callable UI related function

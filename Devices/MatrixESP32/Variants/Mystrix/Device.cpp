@@ -1,6 +1,5 @@
 // Define Device Specific Function
-#include "Family.h"
-#include "MatrixOSConfig.h"
+#include "Device.h"
 #include "esp_adc/adc_oneshot.h"
 #include "esp_log.h"
 
@@ -30,12 +29,14 @@ namespace Device
       product_name += " Pro";
       model = "MX1P";
       KeyPad::velocity_sensitivity = true;
+      LED::underglow = true;
     }
     else if(deviceInfo.Model[3] == 'S')
     {
       KeyPad::velocity_sensitivity = false;
       // Remove "Underglow" from partitions
       LED::partitions.pop_back();
+      LED::underglow = false;
     }
     else
     { 

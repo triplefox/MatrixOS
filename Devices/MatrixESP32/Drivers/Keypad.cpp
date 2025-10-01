@@ -1,5 +1,5 @@
 // Define Device Keypad Function
-#include "Family.h"
+#include "Device.h"
 #include "timers.h"
 #include "driver/gpio.h"
 #include "MatrixOSConfig.h"
@@ -63,24 +63,24 @@ namespace Device::KeyPad
     StartTouchBar();
   }
 
-  void Scan() {
+  IRAM_ATTR void Scan() {
     ScanFN();
     ScanKeyPad();
   }
 
-  bool ScanKeyPad() {
+  IRAM_ATTR bool ScanKeyPad() {
     if (!velocity_sensitivity)
     { return Binary::Scan(); }
     else
     { return FSR::Scan(); }
   }
 
-  bool ScanFN() {
+  IRAM_ATTR bool ScanFN() {
     Fract16 read = gpio_get_level(fn_pin) * UINT16_MAX;
     // ESP_LOGI("FN", "%d", gpio_get_level(fn_pin));
     if (fn_active_low)
     { read = UINT16_MAX - (uint16_t)read; }
-    if (fnState.update(binary_config, read))
+    if (fnState.Update(binary_config, read))
     {
       if (NotifyOS(0, &fnState))
       { return true; }
@@ -134,11 +134,12 @@ namespace Device::KeyPad
     }
     return nullptr;  // Return an empty KeyInfo
   }
-  bool NotifyOS(uint16_t keyID, KeyInfo* keyInfo) {
+  
+  IRAM_ATTR bool NotifyOS(uint16_t keyID, KeyInfo* keyInfo) {
     KeyEvent keyEvent;
     keyEvent.id = keyID;
     keyEvent.info = *keyInfo;
-    return MatrixOS::KEYPAD::NewEvent(&keyEvent);
+    return MatrixOS::KeyPad::NewEvent(&keyEvent);
   }
 
   uint16_t XY2ID(Point xy) {

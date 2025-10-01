@@ -14,11 +14,11 @@ void BootAnimation::Loop() {
   }
 
   struct KeyEvent keyEvent;
-  while (MatrixOS::KEYPAD::Get(&keyEvent))
-  { KeyEvent(keyEvent.id, &keyEvent.info); }
+  while (MatrixOS::KeyPad::Get(&keyEvent))
+  { KeyEvent(keyEvent.ID(), &keyEvent.info); }
 }
 
 void BootAnimation::KeyEvent(uint16_t KeyID, KeyInfo* keyInfo) {
-  if (KeyID == FUNCTION_KEY && keyInfo->state == PRESSED)
+  if (KeyID == FUNCTION_KEY && keyInfo->State() == PRESSED)
   { Exit(); }
 }

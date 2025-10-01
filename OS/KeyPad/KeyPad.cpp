@@ -1,7 +1,8 @@
 #include "MatrixOS.h"
+#include "KeyPad.h"
 #include <string>
 
-namespace MatrixOS::KEYPAD
+namespace MatrixOS::KeyPad
 {
   QueueHandle_t keyevent_queue;
 
@@ -16,7 +17,7 @@ namespace MatrixOS::KEYPAD
     }
   }
 
-  bool NewEvent(KeyEvent* keyevent) {
+  IRAM_ATTR bool NewEvent(KeyEvent* keyevent) {
 
     if (uxQueueSpacesAvailable(keyevent_queue) == 0)
     {
@@ -38,13 +39,13 @@ namespace MatrixOS::KEYPAD
     return Device::KeyPad::GetKey(keyID);
   }
 
+  void ClearList() {
+    xQueueReset(keyevent_queue);
+  }
+
   void Clear() {
     Device::KeyPad::Clear();
     ClearList();
-  }
-
-  void ClearList() {
-    xQueueReset(keyevent_queue);
   }
 
   uint16_t XY2ID(Point xy)  // Not sure if this is required by Matrix OS, added in for now. return UINT16_MAX if no ID

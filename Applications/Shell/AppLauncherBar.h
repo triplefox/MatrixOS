@@ -2,7 +2,7 @@
 #pragma once
 
 #include "MatrixOS.h"
-#include "ui/UI.h"
+#include "UI/UI.h"
 #include "Shell.h"
 
 class AppLauncherBar : public UIComponent {
@@ -31,7 +31,7 @@ class AppLauncherBar : public UIComponent {
     }
 
     virtual bool KeyEvent(Point xy, KeyInfo* keyInfo) {
-        if (keyInfo->state == RELEASED || keyInfo->state == HOLD) 
+        if (keyInfo->State() == RELEASED || keyInfo->State() == HOLD) 
         {
             uint8_t folder_idx = xy.x;
 
@@ -50,12 +50,12 @@ class AppLauncherBar : public UIComponent {
                 }
             }
 
-            if(keyInfo->state == RELEASED)
+            if(keyInfo->State() == RELEASED)
             {
                 shell->current_folder = folder_real_idx;
                 return true;
             }
-            else if(keyInfo->state == HOLD)
+            else if(keyInfo->State() == HOLD)
             {
                 MatrixOS::UIUtility::TextScroll("Group " + std::to_string(folder_real_idx + 1), shell->folder_colors[folder_real_idx]);
                 return true;

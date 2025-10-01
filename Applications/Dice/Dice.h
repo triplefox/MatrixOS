@@ -34,7 +34,7 @@ class Dice : public Application {
     Number
   };
 
-  void Setup() override;
+  void Setup(const vector<string>& args) override;
   void Loop() override;
 
 
@@ -58,7 +58,7 @@ class Dice : public Application {
 
 
   void Settings();
-  void KeyEventHandler(uint16_t KeyID, KeyInfo* keyInfo);
+  void KeyEventHandler(KeyEvent& keyEvent);
 
   uint8_t GetRandomNumber(uint8_t upperbound, uint8_t lowerbound = 1);
   void RenderDot(Point point, Color color);
@@ -66,7 +66,7 @@ class Dice : public Application {
   void RenderNumber(Point point, uint8_t number, Color color);
   void RenderNumbers(uint8_t number, Color color);
   void RollDice();
-  void RenderUnderglow(UnderglowEffectMode mode, Color color, uint8_t period);
+  void RenderUnderglow(UnderglowEffectMode mode, Color color, uint16_t period);
   void FaceSelector();
 
   void DotFaceSelector();

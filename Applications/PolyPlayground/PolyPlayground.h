@@ -2,7 +2,7 @@
 
 #include "MatrixOS.h"
 #include "PolyPad.h"
-#include "ui/UI.h"
+#include "UI/UI.h"
 #include "Application.h"
 
 #define POLY_PLAYGROUND_APP_VERSION 1
@@ -23,9 +23,9 @@ class PolyPlayground : public Application {
 
   CreateSavedVar(TAG, nvsVersion, uint32_t, POLY_PLAYGROUND_APP_VERSION);  // In case NoteLayoutConfig got changed
 
-  void Setup() override;
+  void Setup(const vector<string>& args) override;
 
-  void KeyEventHandler(uint16_t keyID, KeyInfo* keyInfo);
+  void KeyEventHandler(KeyEvent& keyEvent);
 
   void GridKeyEvent(Point xy, KeyInfo* KeyInfo);
   void IDKeyEvent(uint16_t keyID, KeyInfo* KeyInfo);

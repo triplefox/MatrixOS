@@ -3,7 +3,7 @@
 // This technically not an APP but a UI so it coexists with an active APP.
 
 #include "MatrixOS.h"
-#include "ui/UI.h"
+#include "UI/UI.h"
 
 class Setting : public UI {
   public:
@@ -16,8 +16,9 @@ class Setting : public UI {
 
    void Start();
 
-   static void RotateClockwise(EDirection rotation);
+   static void RotateClockwise(Direction rotation);
    static void NextBrightness();
+   static void ResetConfirm();
 
    bool CustomKeyEvent(KeyEvent* keyEvent);
 

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "MatrixOS.h"
-#include "ui/UI.h"
-#include "ui/UIUtilities.h"
+#include "UI/UI.h"
+#include "UI/UIUtilities.h"
 #include "Application.h"
 
 
@@ -53,9 +53,9 @@ class Reversi : public Application {
       .version = 1,
       .visibility = true,
   };
-  void Setup() override;
+  void Setup(const vector<string>& args) override;
   void Loop() override;
-  void KeyEventHandler(uint16_t keyID, KeyInfo* keyInfo);
+  void KeyEventHandler(KeyEvent& keyEvent);
   void Place(Point pos);
 
   void Render();

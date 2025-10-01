@@ -5,7 +5,6 @@
 
 #include "Framework.h"
 
-
 #include "esp_log.h"
 #include "esp_adc/adc_oneshot.h"
 #include "driver/gpio.h"
@@ -15,11 +14,8 @@
 // Family-specific defines
 #define GRID_TYPE_8x8
 #define FAMILY_MYSTRIX
-#define DEVICE_BATTERY
 #define MULTIPRESS 10  // Key Press will be process at once
-#define X_SIZE 8
-#define Y_SIZE 8
-#define DEVICE_SETTING
+
 #define DEVICE_SAVED_VAR_SCOPE "Device"
 
 // Factory configuration
@@ -65,6 +61,7 @@ namespace Device
   namespace LED
   {
     inline gpio_num_t led_pin;
+    inline bool underglow;
   }
 
   void LoadDeviceInfo();
@@ -172,6 +169,22 @@ namespace Device
 
   namespace HWMidi
   {
+    void Init();
+  }
+
+  namespace Storage
+  {
+    inline gpio_num_t sd_clk_pin;
+    inline gpio_num_t sd_cmd_pin;
+    inline gpio_num_t sd_d0_pin;
+    inline gpio_num_t sd_d1_pin;
+    inline gpio_num_t sd_d2_pin;
+    inline gpio_num_t sd_d3_pin;
+    inline gpio_num_t sd_det_pin;
+
+    inline bool sd_4bit_mode;
+    inline uint32_t sd_freq_khz;
+
     void Init();
   }
 }

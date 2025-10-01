@@ -33,7 +33,7 @@ namespace WS2812
           },
   };
 
-  static size_t rmt_encode_led(rmt_encoder_t *rmt_encoder, rmt_channel_handle_t channel, const void *primary_data, size_t data_size, rmt_encode_state_t *ret_state) {
+  IRAM_ATTR static size_t rmt_encode_led(rmt_encoder_t *rmt_encoder, rmt_channel_handle_t channel, const void *primary_data, size_t data_size, rmt_encode_state_t *ret_state) {
     rmt_led_encoder_t* led_encoder = __containerof(rmt_encoder, rmt_led_encoder_t, base);
     rmt_encoder_handle_t bytes_encoder = led_encoder->bytes_encoder;
     rmt_encoder_handle_t copy_encoder = led_encoder->copy_encoder;
@@ -76,7 +76,7 @@ namespace WS2812
     return encoded_symbols;
   }
 
-  static esp_err_t rmt_del_led_encoder(rmt_encoder_t *rmt_encoder) {
+  IRAM_ATTR static esp_err_t rmt_del_led_encoder(rmt_encoder_t *rmt_encoder) {
     rmt_led_encoder_t* led_encoder = __containerof(rmt_encoder, rmt_led_encoder_t, base);
     rmt_del_encoder(led_encoder->bytes_encoder);
     rmt_del_encoder(led_encoder->copy_encoder);
@@ -84,7 +84,7 @@ namespace WS2812
     return ESP_OK;
   }
 
-  static esp_err_t rmt_led_encoder_reset(rmt_encoder_t *rmt_encoder) {
+  IRAM_ATTR static esp_err_t rmt_led_encoder_reset(rmt_encoder_t *rmt_encoder) {
     rmt_led_encoder_t* led_encoder = __containerof(rmt_encoder, rmt_led_encoder_t, base);
     rmt_encoder_reset(led_encoder->bytes_encoder);
     rmt_encoder_reset(led_encoder->copy_encoder);
@@ -97,10 +97,10 @@ namespace WS2812
     led_encoder.base.del = rmt_del_led_encoder;
     led_encoder.base.reset = rmt_led_encoder_reset;
 
-    // different led might have its own timing requirements, following parameter is for WS2812
+    // different led might have its own timing requirements, following parameter is for LC8812
     rmt_bytes_encoder_config_t bytes_encoder_config = {
-      .bit0 = { 4, 1, 10, 0 },
-      .bit1 = { 10, 1, 4, 0 },
+      .bit0 = { 3, 1, 9, 0 },
+      .bit1 = { 6, 1, 6, 0 },
       .flags = { .msb_first = 1 }
     };
 
@@ -108,7 +108,7 @@ namespace WS2812
     rmt_copy_encoder_config_t copy_encoder_config = {};
     rmt_new_copy_encoder(&copy_encoder_config, &led_encoder.copy_encoder);
     
-    led_encoder.reset_code = (rmt_symbol_word_t) { 2800, 0, 0, 0 };
+    led_encoder.reset_code = (rmt_symbol_word_t) { 1000, 0, 0, 0 };
 
     *ret_encoder = &led_encoder.base;
     return ESP_OK;
@@ -125,8 +125,19 @@ namespace WS2812
     }
 
     led_data = (uint8_t*)malloc(numsOfLED * 3);
+    if (led_data == NULL) {
+      ESP_LOGE("WS2812", "Failed to allocate led_data memory");
+      return;
+    }
 
     dither_error = (uint8_t*)malloc(numsOfLED * 3 * sizeof(uint8_t));
+    if (dither_error == NULL) {
+      ESP_LOGE("WS2812", "Failed to allocate dither_error memory");
+      free(led_data);
+      led_data = NULL;
+      return;
+    }
+
     for (uint16_t i = 0; i < numsOfLED * 3; i++)
     {
       dither_error[i] = esp_random() & 0x7F; // Limit the random error to 8 bits
@@ -136,10 +147,10 @@ namespace WS2812
         .gpio_num = gpio_pin,            // GPIO number
         .clk_src = RMT_CLK_SRC_DEFAULT,  // select source clock
         .resolution_hz = RMT_LED_STRIP_RESOLUTION_HZ,       // 10 MHz tick resolution, i.e., 1 tick = 0.1 µs
-        .mem_block_symbols = 64,         // memory block size, 64 * 4 = 256 Bytes
+        .mem_block_symbols = 256,        // memory block size, 256 * 4 = 1024 Bytes
         .trans_queue_depth = 4,          // set the number of transactions that can be pending in the background
         .intr_priority = 99,
-        .flags = {.invert_out = 0, .with_dma = 0, .io_loop_back = 0, .io_od_mode = 0},
+        .flags = {.invert_out = 0, .with_dma = 1, .io_loop_back = 0, .io_od_mode = 0},
     };
 
     ESP_ERROR_CHECK(rmt_new_tx_channel(&rmt_channel_config, &rmt_channel));
@@ -150,14 +161,31 @@ namespace WS2812
   }
 
   IRAM_ATTR void Show(Color* buffer, std::vector<uint8_t>& brightness) {
-    // rmt_tx_wait_all_done(rmt_channel, portMAX_DELAY);
-    // TODO: IF rmt is busy, just skip
-    
+    // Safety checks
+    if (buffer == NULL || led_data == NULL || WS2812::partitions == NULL) {
+      return;
+    }
+
+    // Check if RMT transmission is complete, skip frame if busy to prevent blocking
+    if (rmt_tx_wait_all_done(rmt_channel, 0) != ESP_OK) {
+      // RMT is busy with previous transmission, skip this frame
+      return;
+    }
+
     for (uint8_t partition_index = 0; partition_index < WS2812::partitions->size(); partition_index++)
     {
+      if (partition_index >= brightness.size()) {
+        break; // Avoid accessing brightness array out of bounds
+      }
+
       LEDPartition local_partition = WS2812::partitions->at(partition_index);
 
-      if (brightness[partition_index] == 0 || partition_index >= brightness.size()) {
+      // Bounds check for led_data access
+      if (local_partition.start + local_partition.size > numsOfLED) {
+        continue;
+      }
+
+      if (brightness[partition_index] == 0) {
         memset(led_data + local_partition.start * 3, 0, local_partition.size * 3);
         continue;
       }
@@ -175,50 +203,40 @@ namespace WS2812
         led_data[data_index_r] = Color::scale8_video(buffer[buffer_index].R, local_brightness);
         led_data[data_index_b] = Color::scale8_video(buffer[buffer_index].B, local_brightness);
 
-        if(dithering == false) {
-          continue;
-        }
+        if(dithering && dither_error != NULL) {
+          const uint8_t dither_error_threshold = 16;
 
-        const uint8_t dither_error_threshold = 16;
+          // Process all channels in a loop to reduce code duplication
+          struct {
+            uint8_t original;
+            uint16_t data_index;
+          } channels[3] = {
+            {buffer[buffer_index].G, data_index_g},
+            {buffer[buffer_index].R, data_index_r},
+            {buffer[buffer_index].B, data_index_b}
+          };
 
-        if(led_data[data_index_g] >= dithering_threshold)
-        {
-          uint8_t new_dither_error_g = (buffer[buffer_index].G * local_brightness) - (led_data[data_index_g] << 8);
-          if (new_dither_error_g >= dither_error_threshold)
-          {
-            dither_error[data_index_g] += new_dither_error_g >> 1;
-            if (dither_error[data_index_g] >= 128)
+          for (int ch = 0; ch < 3; ch++) {
+            if(led_data[channels[ch].data_index] >= dithering_threshold)
             {
-              led_data[data_index_g] += 1;
-              dither_error[data_index_g] -= 128;
-            }
-          }
-        }
+              // Calculate error more efficiently using 16-bit intermediate
+              uint16_t expected = (uint16_t)channels[ch].original * local_brightness;
+              uint16_t actual = (uint16_t)led_data[channels[ch].data_index] << 8;
 
-        if(led_data[data_index_r] >= dithering_threshold)
-        {
-          uint8_t new_dither_error_r = (buffer[buffer_index].R * local_brightness) - (led_data[data_index_r] << 8);
-          if (new_dither_error_r >= dither_error_threshold)
-          {
-            dither_error[data_index_r] += new_dither_error_r >> 1;
-            if (dither_error[data_index_r] >= 128)
-            {
-              led_data[data_index_r] += 1;
-              dither_error[data_index_r] -= 128;
-            }
-          }
-        }
-
-        if(led_data[data_index_b] >= dithering_threshold)
-        {
-          uint8_t new_dither_error_b = (buffer[buffer_index].B * local_brightness) - (led_data[data_index_b] << 8);
-          if (new_dither_error_b >= dither_error_threshold)
-          {
-            dither_error[data_index_b] += new_dither_error_b >> 1;
-            if (dither_error[data_index_r] >= 128)
-            {
-              led_data[data_index_r] += 1;
-              dither_error[data_index_r] -= 128;
+              if (expected > actual) {
+                uint8_t new_dither_error = (expected - actual) >> 8; // Convert back to 8-bit
+                if (new_dither_error >= dither_error_threshold)
+                {
+                  dither_error[channels[ch].data_index] += new_dither_error >> 1;
+                  if (dither_error[channels[ch].data_index] >= 128)
+                  {
+                    if (led_data[channels[ch].data_index] < 255) { // Prevent overflow
+                      led_data[channels[ch].data_index] += 1;
+                    }
+                    dither_error[channels[ch].data_index] -= 128;
+                  }
+                }
+              }
             }
           }
         }
@@ -226,6 +244,10 @@ namespace WS2812
       }
     }
 
-    rmt_transmit(rmt_channel, rmt_encoder, led_data, numsOfLED * 3, &rmt_config);
+    // Transmit LED data with error handling
+    esp_err_t ret = rmt_transmit(rmt_channel, rmt_encoder, led_data, numsOfLED * 3, &rmt_config);
+    if (ret != ESP_OK) {
+      ESP_LOGW("WS2812", "RMT transmission failed: %s", esp_err_to_name(ret));
+    }
   }
 }

@@ -1,5 +1,5 @@
 #include "MatrixOS.h"
-#include "ui/UI.h"
+#include "UI/UI.h"
 
 class StrumDurationModifier: public UIComponent {
  public:
@@ -29,12 +29,12 @@ class StrumDurationModifier: public UIComponent {
 
   virtual bool KeyEvent(Point xy, KeyInfo* keyInfo) 
   {
-    if (keyInfo->state == HOLD)
+    if (keyInfo->State() == HOLD)
     {
         MatrixOS::UIUtility::TextScroll(GetName(), GetColor());
         return true;
     }
-    else if (keyInfo->state == PRESSED)
+    else if (keyInfo->State() == PRESSED)
     { 
       *this->note_length = (xy.x + 1) * step;
       return true;

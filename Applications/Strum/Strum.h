@@ -19,9 +19,9 @@ class Strum : public Application {
       .visibility = true,
   };
 
-  void Setup() override;
+  void Setup(const vector<string>& args) override;
   void Loop() override;
-  void KeyEventHandler(uint16_t KeyID, KeyInfo* keyInfo);
+  void KeyEventHandler(KeyEvent& keyEvent);
 
   CreateSavedVar("Strum", nvsVersion, uint32_t, STRUM_APP_VERSION);  // In case NoteLayoutConfig got changed
   CreateSavedVar("Strum", activeLayout, uint8_t, 0); //0 for left, 1 for right
