@@ -43,4 +43,4 @@ Strum
 {FAMILY_PATH}/Applications/ForceCalibration
 
 # Example application template
-#git:https://github.com/203-Systems/Matrix-OS-APP-Template.git@master
+git:https://github.com/triplefox/Matrix-OS-SameGame@master
